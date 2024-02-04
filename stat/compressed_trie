@@ -1,0 +1,38 @@
+Total types : 4
+Types in detail.
+1) Nodes with Zero next node pointer
+	Structure: 
+		 meaning bitmap 
+		 meaning pointer start
+2) Nodes with One next node pointer
+	Structure: 
+		 1 char 
+		 1 next node pointer 
+		 meaning bitmap 
+		 meaning pointer start 
+3) Nodes with Two next node pointer
+	Structure: 
+		 2 char 
+		 2 next node pointers 
+		 meaning bitmap 
+		 meaning pointer start
+4) Node with all 26 next node pointer
+	Structure: 
+		 26 next node pointers 
+		 meaning bitmap 
+		 meaning pointer start
+5) Other nodes
+	 Structure: 
+		 next node bitmap 
+		 next node pointer start (np map) 
+		 meaning bitmap 
+		 meaning pointer start
+	           Type            SYM  size (bits) Node count   Space taken (Bytes)
+	-----------------------------------------------------------------
+	Zero next node pointer    ZERO      44        155588      855734    
+	One next node pointer     ONE       69        335316      2892101   
+	Two next node pointers    TWO       94        47696       560428    
+	All 26 next node pointers FULL      564       14          987       
+	Others                    OTR       88        29153       320683    
+	-----------------------------------------------------------------
+	TOTLAL                                  4629933 Bytes (5 MB)
