@@ -29,4 +29,3 @@ Node next pointers    Node count   Meanings nodes   Nodes with zero meaning
      24                 21             175                2
      25                 22             173                1
      26                 14             193                0
-Time Taken to search 1M words: ~0s

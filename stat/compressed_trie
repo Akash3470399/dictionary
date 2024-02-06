@@ -36,3 +36,6 @@ Types in detail.
 	Others                    OTR       88        29153       320683    
 	-----------------------------------------------------------------
 	TOTLAL                                  4629933 Bytes (5 MB)
+Next node pointers map size : 341738 Byte
+Meaing pointer map size     : 703362 Byte
+Total space required to store compressed tree : 5675033 Bytes (6 MB)
