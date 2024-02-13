@@ -5,7 +5,7 @@ srcfiles = $(wildcard src/*.c)
 objfiles = $(patsubst src/%.c, obj/%.o, $(srcfiles))
 
 run : $(objfiles)
-	$(cc) $^ main.c -o run $(cflags)
+	$(cc) $^ -o run $(cflags)
 
 obj/%.o : src/%.c
 	@mkdir -p $(@D)
@@ -13,5 +13,5 @@ obj/%.o : src/%.c
 
 .PHONY : clean
 clean:
-	rm -f obj/*
+	rm -f obj/* run
 

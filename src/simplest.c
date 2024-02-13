@@ -3,103 +3,74 @@
 #include <time.h>
 #include <math.h>
 
-#include "consts.h"
-#include "globals.h"
-#include "types.h"
-typedef struct Node node;
+#include "bitsarr.h"
 
+typedef struct Node node;
+typedef unsigned char uchar;
+enum Type {ZERO_T, ONE_T, TWO_T, ONE_MT, TWO_MT, FULL_T,OTR_T};
+enum Type tp;
+
+#define NCHRS 26
+#define TYPESN 7
 #define tomb(n) ((int)(ceil((float)n/(1<<20))))
 #define tokb(n) ((int)(ceil((float)n/(1<<10))))
 #define tobyte(n) ((int)(ceil((float)n/(1<<3))))
-#define rawsize(n) (n*sizeof(node))
-#define ptrbits(n) ((int)ceil((float)(log(n)/log(2))))
-#define nodepos(ptrno, blk, size) (type_mmap[blk] + (((ptrno - type_spmap[blk] * size))
-#define mbitmap_s NCHRS
-#define nbitmsp_s NCHRS
+#define ptrsize(n) ((int)ceil((float)(log(n)/log(2))))
 
+#define puttype(tp) bitscopy(&tp, 0, refdata, curbit, 3); \
+                    curbit += 3; 
+#define putmap(bitmap) bitscopy(&bitmap , 0, refdata, curbit, NCHRS); \
+                        curbit += NCHRS;
+#define putmp(meaning_ptr) bitscopy(&meaning_ptr, 0, refdata, curbit, mpsize); \
+                        curbit += mpsize;
+#define putchar(ch) bitscopy(&ch, 0, refdata, curbit, 5); \
+                    curbit += 5;
+#define putnp(next_ptr) bitscopy(&next_ptr, 0, refdata, curbit, npsize); \
+                        curbit += npsize;
+
+#define gettype(tp, bitpos) tp = 0; \
+                            bitscopy(refdata, bitpos, &tp, 0, 3); \
+                            bitpos += 3;
+
+#define getmap(bitmap, bitpos)  bitmap = 0; \
+                                bitscopy(refdata, bitpos, &bitmap, 0, NCHRS); \
+                                bitpos += NCHRS;
+
+#define getmp(meaning_ptr, bitpos) meaning_ptr = 0; \
+                                   bitscopy(refdata, bitpos, &meaning_ptr, 0, mpsize); \
+                                   bitpos += mpsize;
+
+#define getchar(ch, bitpos) ch = 0; \
+                            bitscopy(refdata, bitpos, &ch, 0, 5); \
+                            bitpos += 5;
+
+#define getnp(next_ptr, bitpos) next_ptr = 0; \
+                                bitscopy(refdata, bitpos, &next_ptr, 0, npsize); \
+                                bitpos += npsize;
 
 struct Node 
 {
-    int mlist;                  // meanings available at a node
+    int mlist;          // meanings available at a node
     uchar mcount;       // total meanings available at a node 
     struct Node *nextNode[26];  // next node pointers
 }*root;
 
-int nlarr[27];      // next node pointer count, value at index i gives node count with i next node pointers
-int lmarr[27];      // meanings count, value at index i gives total meanings availables for all nodes with i next node pointers 
-int zmarr[27];      // zero meaning node count, value at index i gives node with zero meanings with i next node pointers 
+int nncount[27];    // next node pointer count, value at index i gives node count with i next node pointers
+int nnmcount[27];   // meanings count, value at index i gives total meanings availables for all nodes with i next node pointers 
+int zmcount;       // store count of nodes without meaning of type ONE_T, TWO_T 
+int type_size[TYPESN];
 int totalnodes = 0; // total nodes generated
 int totalwords = 0; // total words in trie
+int othernodes = 0;
+int mpsize, npsize;
+long memsize = 0;
+long curbit = 0;
 void *refdata;
-int refdata_filesize;
-int types_cur_pointer[5]; // give next pointer of ith type that can be used
+
+
 node *create_node();
 void insert_node(char *word);
 int search_words(char *filename);
-
-void init_ptrsize()
-{
-    int npmap_nodes = totalnodes - (nlarr[1] + 2*nlarr[2] + 26*nlarr[26]);
-
-    FILE *fp ;
-    int meaning_filesize;
-    
-    // meaning overhead : meaning bitmap + meaning pointer start
-    uchar movr = ptrbits(totalwords) + NCHRS;
-    
-    if((fp = fopen("data/len_meaning", "r")) != NULL)
-    {
-        fseek(fp, 0, SEEK_END);
-        meaning_filesize = ftell(fp);
-        fclose(fp);
-    }
-
-    type_s[MPMAP_B] = ptrbits(totalwords); 
-    nnp_s = ptrbits(totalnodes); 
-    nnpmap_s = ptrbits(npmap_nodes);
-    mp_s = ptrbits(meaning_filesize);
-
-    // only meaning overhead
-    type_s[ZERO_B] = movr;
-
-    // one next node + meaning overhead
-    type_s[ONE_B] = nnp_s + 5 + movr;     // 5 bits requied to encode 26 alphabates
-
-    // two next node + meaning overhead
-    type_s[TWO_B] = (2*nnp_s) + (2*5) + movr;
-
-    // 26 next nodes + meaning overhead
-    type_s[FULL_B] = (26*nnp_s) + movr;
-
-    // others have next node bitmap + next node pointer start + meaning overhead
-    type_s[OTR_B] = NCHRS + nnpmap_s + movr;
-    
-    // next pointer map having next pointer of OTR node 
-    npmap_size = tobyte(npmap_nodes * nnp_s);
-
-    // meaing pointer map having meanings byte offset from meaning file
-    mpmap_size = tobyte(totalwords * mp_s);
-
-    // recording starting memory by of each block in memory
-    type_mmap[ONE_B] = 0, type_mmap[TWO_B] = tobyte(type_s[ONE_B]*nlarr[1]);
-    type_mmap[FULL_B] = type_mmap[TWO_B] + tobyte(type_s[TWO_B] * nlarr[2]);
-    type_mmap[MPMAP_B] = type_mmap[FULL_B] + tobyte(type_s[FULL_B] * nlarr[26]);
-    type_mmap[ZERO_B] = type_mmap[MPMAP_B] + tobyte(totalwords * mp_s);
-    type_mmap[OTR_B] = type_mmap[ZERO_B] + tobyte(type_s[ZERO_B] * nlarr[0]);
-    // no of nodes of type other_t 
-    npmap_nodes = totalnodes - (nlarr[0] + nlarr[1] + nlarr[26] + nlarr[2]);
-    type_mmap[NPMAP_B] = type_mmap[OTR_B] + tobyte(type_s[OTR_B] * npmap_nodes);
-
-    // recording start pointer of each type
-    type_spmap[ONE_B] = 0, type_spmap[TWO_B] = type_spmap[ONE_B] + nlarr[1];
-    type_spmap[FULL_B] = type_spmap[TWO_B] + nlarr[2];
-    type_spmap[MPMAP_B] = 0, type_spmap[ZERO_B] = type_spmap[FULL_B] + nlarr[26];
-    type_spmap[OTR_B] = type_spmap[ZERO_B] + nlarr[0];
-    type_spmap[NPMAP_B] = 0;
-
-    for(int i = 0; i < 7; i++)
-        printf("%d  %d\n", type_mmap[i], type_spmap[i]);
-}
 
 // create & initilize instance of struct Node
 node *create_node()
@@ -171,73 +142,172 @@ void collect_data(node *parent)
                 collect_data(parent->nextNode[i]);
             }
         }
-        nlarr[nf] += 1;
-        lmarr[nf] += parent->mcount;
-        if(parent->mcount == 0)
-        zmarr[nf] += 1;
+
+        nncount[nf] += 1;
+        nnmcount[nf] += parent->mcount;
+    
+        if(!(nf == 1 || nf == 2 || nf == 0 || nf == 26))
+            othernodes += 1;
+
+        if((nf == 1 || nf == 2) &&  parent->mcount == 0)
+            zmcount += 1;
     }
 }
 
-// this function should be called only after collect_data have 
-void summarize()
+int compress(node *parent, int level)
 {
-    time_t start_time, end_time;
-    int bytesize = totalnodes * sizeof(node), othernodes = 0; 
-    FILE *sfp = fopen("stat/simplest_trie", "wb+");
-    FILE *cfp = fopen("stat/compressed_trie", "wb+");
+    int nf = 0, nodepos[NCHRS], selfpos;
 
-    if(sfp != NULL && cfp != NULL)
+    for(int i = 0; i < NCHRS; i++)
     {
-        // simplest trie calculations
-        fprintf(sfp, "Total nodes : %d\nTotal words : %d\n", totalnodes, totalwords);
-        fprintf(sfp, "Space taken : %d Bytes (%d MB)\n", bytesize, tomb(bytesize));
-        fprintf(sfp, "Node next pointers    Node count   Meanings nodes   Nodes with zero meaning\n");
-        for(int i = 0; i <= NCHRS; i++)
-            fprintf(sfp, "     %-14d     %-12d   %-18d %-d\n", i, nlarr[i], lmarr[i], zmarr[i]);
-
-       
-        // compressed trie calculations
-        for(int i = 3; i < 26; i++)
-            othernodes += nlarr[i];
-        
-        fprintf(cfp, "Total types : 4\nTypes in detail.\n");
-        fprintf(cfp, "1) Nodes with Zero next node pointer\n\tStructure: \n\t\t meaning bitmap \n\t\t meaning pointer start\n");
-        fprintf(cfp, "2) Nodes with One next node pointer\n\tStructure: \n\t\t 1 char \n\t\t 1 next node pointer \n\t\t meaning bitmap \n\t\t meaning pointer start \n");
-        fprintf(cfp, "3) Nodes with Two next node pointer\n\tStructure: \n\t\t 2 char \n\t\t 2 next node pointers \n\t\t meaning bitmap \n\t\t meaning pointer start\n");
-        fprintf(cfp, "4) Node with all 26 next node pointer\n\tStructure: \n\t\t 26 next node pointers \n\t\t meaning bitmap \n\t\t meaning pointer start\n");
-        fprintf(cfp, "5) Other nodes\n\t Structure: \n\t\t next node bitmap \n\t\t next node pointer start (np map) \n\t\t meaning bitmap \n\t\t meaning pointer start\n");
-        
-        fprintf(cfp, "\t           Type            SYM  size (bits) Node count   Space taken (Bytes)\n");
-        fprintf(cfp, "\t-----------------------------------------------------------------\n");
-        fprintf(cfp, "\tZero next node pointer    ZERO      %-9d %-10d  %-9d \n", 
-                type_s[ZERO_B], nlarr[0], tobyte(type_s[ZERO_B]*nlarr[0]));
-        
-        fprintf(cfp, "\tOne next node pointer     ONE       %-9d %-10d  %-9d \n", 
-                type_s[ONE_B], nlarr[1], tobyte(type_s[ONE_B]*nlarr[1]));
-        
-        fprintf(cfp, "\tTwo next node pointers    TWO       %-9d %-10d  %-9d \n", 
-                type_s[TWO_B], nlarr[2], tobyte(type_s[TWO_B] *nlarr[2]));
-        
-        fprintf(cfp, "\tAll 26 next node pointers FULL      %-9d %-10d  %-9d \n", 
-                type_s[FULL_B], nlarr[26], tobyte(type_s[FULL_B]*nlarr[26]));
-        
-        fprintf(cfp, "\tOthers                    OTR       %-9d %-10d  %-9d \n", 
-                type_s[OTR_B], othernodes, tobyte(type_s[OTR_B] * othernodes));
-        fprintf(cfp, "\t-----------------------------------------------------------------\n");
-        bytesize = type_s[ZERO_B]*nlarr[0] + type_s[ONE_B]*nlarr[1] + type_s[TWO_B] * nlarr[2] + type_s[FULL_B] * nlarr[26] + type_s[OTR_B] * othernodes;
-        bytesize = tobyte(bytesize);
-        fprintf(cfp, "\tTOTLAL                                  %d Bytes (%d MB)\n", bytesize, tomb(bytesize));
-     
-        fprintf(cfp, "Next node pointers map size : %d Byte\n", npmap_size);
-        fprintf(cfp, "Meaing pointer map size     : %d Byte\n", mpmap_size);
-        
-        bytesize += npmap_size + mpmap_size;
-        refdata_filesize = bytesize;
-        fprintf(cfp, "Total space required to store compressed tree : %d Bytes (%d MB)\n", bytesize, tomb(bytesize));
-
-        fclose(cfp);
-        fclose(sfp);
+        if(parent->nextNode[i] != NULL)
+        {
+            nf += 1;
+            nodepos[i] = compress(parent->nextNode[i], level+1);
+            //printf("level %d, letter %c, start %d\n", level, (i+'a'), nodepos[i]);
+        }
     }
+    selfpos = curbit;
+    switch(nf)
+    {
+        case 0:
+            tp = ZERO_T;
+            puttype(tp);
+            putmap(parent->mlist);
+            
+            for(int i = 0; i < parent->mcount; i++)
+            {
+                putmp(parent->mlist);
+            }
+            break;
+        case 1:
+            tp = (parent->mcount == 0)? ONE_T : ONE_MT;
+
+            puttype(tp);
+            for(int i = 0; i < NCHRS; i++)
+            {
+                if(parent->nextNode[i] != NULL)
+                {
+                    putchar(i); 
+                    putnp(nodepos[i]);
+                    break;
+                }
+            }
+            
+            if(tp == ONE_MT)
+            {
+                putmap(parent->mlist);  // meaning bitmap
+                for(int i = 0; i < parent->mcount; i++)
+                {   
+                    putmp(parent->mlist);   // actual meaning
+                }
+            }
+            break;
+        case 2:
+            tp = (parent->mcount == 0)? TWO_T : TWO_MT;
+
+            puttype(tp);
+            for(int i = 0; i < NCHRS; i++)
+            {
+                if(parent->nextNode[i] != NULL)
+                {
+                    putchar(i); 
+                }
+            }
+
+            for(int i = 0; i < NCHRS; i++)
+            {
+                if(parent->nextNode[i] != NULL)
+                {
+                    putnp(nodepos[i]);
+                }
+            }
+            
+            if(tp == TWO_MT)
+            {
+                putmap(parent->mlist);  // meaning bitmap
+                for(int i = 0; i < parent->mcount; i++)
+                {   
+                    putmp(parent->mlist);   // actual meaning
+                }
+            }
+
+            break;
+        case 26:
+            tp = FULL_T;
+            puttype(tp);
+            for(int i = 0 ; i < NCHRS; i++)
+            {
+                putnp(nodepos[i]);
+            }
+
+            putmap(parent->mlist);
+            
+            for(int i = 0; i < parent->mcount; i++)
+            {
+                putmp(parent->mlist);
+            }
+            break;
+        default:
+            int map = 0;
+            tp = OTR_T;
+            puttype(tp);
+
+            // calculate next pointer map
+            for(int i = 0; i < NCHRS; i++)
+                if(parent->nextNode[i] != NULL)
+                    map |= (1<<i);
+            putmp(map);     // next pointer map
+            for(int i = 0; i < NCHRS; i++)
+            {
+                if(parent->nextNode[i] != NULL)
+                {
+                    putnp(nodepos[i]);  // put next pointers
+                }
+            }
+    
+            putmap(parent->mlist);
+            for(int i = 0; i < parent->mcount; i++)
+            {
+                putmp(parent->mlist);
+            }
+    }
+    
+    //printf("start %d, cf %d, type %d\n", selfpos, nf, tp);
+
+    return selfpos;
+}
+
+void calculations()
+{
+    int filesize, curptr, expptr = 10;
+    FILE *fp;
+
+    if((fp = fopen("data/len_meaning","rb")) == NULL)
+        return;
+    fseek(fp, 0, SEEK_END);
+    filesize = ftell(fp);
+    fclose(fp);
+  
+    mpsize = ptrsize(filesize);
+   
+    do{
+        curptr = expptr;
+        memsize = (totalnodes * 3);
+        memsize += ((totalnodes-zmcount) * 26);
+        memsize += (totalwords*mpsize);
+        
+        memsize += (totalnodes * curptr);
+
+        memsize += (nncount[1] * 5);
+        memsize += (nncount[2] * 10);
+        memsize += (othernodes * NCHRS);
+        expptr = ptrsize(memsize);
+    }while(curptr < expptr);
+    npsize = expptr;
+    memsize = tobyte(memsize);
+
+    //printf("np %d, mp %d, memsize %d\n", npsize, mpsize, memsize);
 }
 
 // search each word on new line from the filename file in trie
@@ -259,36 +329,62 @@ int search_words(char *filename)
     return words_found;
 }
 
-void compress(node *n)
+long get_nextlevel(int bitpos, char ch)
 {
-    int nf = 0;
-    if(n != NULL)
+    long res = -1, buf;
+    unsigned char ch1, ch2;
+    gettype(tp, bitpos);
+    printf("tp %d\n", tp);
+    switch(tp)
     {
-        for(int i = 0; i < NCHRS; i++)
-        {
-            nf += 1;
-            if(n->nextNode[i] != NULL)
-                compress(n->nextNode[i]);
-        }
-
-
-        switch(nf)
-        {
-            case 0:
-                zero_t node;
-                node.ptrno = type_spmap[ZERO_B] + types_cur_pointer[ZERO_B]++;
-                node.meaning.bitmap = n->mlist;
-                 
-                break;
-        }
+        case ZERO_T:
+            break;
+        case ONE_T:
+        case ONE_MT:
+            getchar(ch1, bitpos);
+            
+            if(ch1 == (ch-'a'))
+            {
+                getnp(res, bitpos);
+            }
+            break;
+        case TWO_T:
+        case TWO_MT:
+            getchar(ch1, bitpos); 
+            getchar(ch2, bitpos);
+            if(ch1 == (ch-'a'))
+            {
+                getnp(res, bitpos);
+            }
+            else if(ch2 == (ch-'a'))
+            {
+                getnp(res, bitpos);
+            } 
+            break;
+        case FULL_T:
+            bitpos += (npsize * (ch - 'a'));
+            getnp(res, bitpos);
+            break;
+        case OTR_T:
+            getmap(buf, bitpos);
+            if(buf & (1<<(ch-'a')))
+            {
+                for(int i = 0; i < (ch - 'a'); i++)
+                    if(buf & (1<<i))
+                        bitpos += npsize;
+                getnp(res, bitpos);
+            }
+            break;
     }
+
+    return res;
 }
 
 
 // requirements
 // - words are not having special charecters
 // - only small case letters are allowed 
-int simplest_main(int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int n;
     char word[100];
@@ -308,9 +404,44 @@ int simplest_main(int argc, char *argv[])
     }
     
     collect_data(root);     // traverse through trie & collect data
-    init_ptrsize();
-    summarize();            // use collected data and generate stats
-    
+
+    calculations();
+
+
+    refdata = malloc(memsize );
+
+    int rootbit = compress(root, 0);
+    printf("root bit pos %ld\n",rootbit);
+            
+    int a = rootbit, i = 0;
+
+    char *h = "hello\0";
+
+    while(h[i+1] != '\0' && a != -1)
+    {
+        a = get_nextlevel(a, h[i++]);
+        printf("next node %d\n", a);
+    }
+
+
+    int b = 11554753, data;
+    gettype(data, b);
+    printf("type %d\n", data);
+    getmap(data, b);
+    printf("map %x\n", data);
+    getnp(data, b);
+    printf("next1 %d\n", data);
+    getnp(data, b);
+    printf("next2 %d\n", data);
+
+
+
+    //gettype(a, rootbit);
+    //printf("type %d\n", a);
+
+    //rootbit += (26*npsize);
+    //getmap(a, rootbit);
+    //printf("meaning %x\n", a);
     //printf("\nc %d\n",search_words("data/1m"));
     fclose(fp);
     return 0;
