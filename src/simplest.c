@@ -17,36 +17,74 @@ enum Type tp;
 #define tobyte(n) ((int)(ceil((float)n/(1<<3))))
 #define ptrsize(n) ((int)ceil((float)(log(n)/log(2))))
 
-#define puttype(tp) bitscopy(&tp, 0, refdata, curbit, 3); \
-                    curbit += 3; 
-#define putmap(bitmap) bitscopy(&bitmap , 0, refdata, curbit, NCHRS); \
-                        curbit += NCHRS;
-#define putmp(meaning_ptr) bitscopy(&meaning_ptr, 0, refdata, curbit, mpsize); \
-                        curbit += mpsize;
-#define putchar(ch) bitscopy(&ch, 0, refdata, curbit, 5); \
-                    curbit += 5;
-#define putnp(next_ptr) bitscopy(&next_ptr, 0, refdata, curbit, npsize); \
-                        curbit += npsize;
+long curbit = 0, bitpos;
+int mpsize, npsize;
+void *refdata;
 
-#define gettype(tp, bitpos) tp = 0; \
-                            bitscopy(refdata, bitpos, &tp, 0, 3); \
-                            bitpos += 3;
+#define puttype(tp) \
+        { \
+            bitscopy(&tp, 0, refdata, curbit, 3); \
+            curbit += 3; \
+        }
 
-#define getmap(bitmap, bitpos)  bitmap = 0; \
-                                bitscopy(refdata, bitpos, &bitmap, 0, NCHRS); \
-                                bitpos += NCHRS;
+#define putmap(bitmap) \
+        { \
+            bitscopy(&bitmap , 0, refdata, curbit, NCHRS); \
+            curbit += NCHRS; \
+        }
 
-#define getmp(meaning_ptr, bitpos) meaning_ptr = 0; \
-                                   bitscopy(refdata, bitpos, &meaning_ptr, 0, mpsize); \
-                                   bitpos += mpsize;
+#define putmp(meaning_ptr) \
+        { \
+            bitscopy(&meaning_ptr, 0, refdata, curbit, mpsize); \
+            curbit += mpsize; \
+        }
 
-#define getchar(ch, bitpos) ch = 0; \
-                            bitscopy(refdata, bitpos, &ch, 0, 5); \
-                            bitpos += 5;
+#define putchar(ch) \
+        { \
+            bitscopy(&ch, 0, refdata, curbit, 5); \
+            curbit += 5; \
+        }
 
-#define getnp(next_ptr, bitpos) next_ptr = 0; \
-                                bitscopy(refdata, bitpos, &next_ptr, 0, npsize); \
-                                bitpos += npsize;
+#define putnp(next_ptr) \
+        { \
+            bitscopy(&next_ptr, 0, refdata, curbit, npsize); \
+            curbit += npsize; \
+        }
+
+#define gettype(tp) \
+        { \
+            tp = 0; \
+            bitscopy(refdata, bitpos, &tp, 0, 3); \
+            bitpos += 3; \
+        }
+
+#define getmap(bitmap) \
+        { \
+            bitmap = 0; \
+            bitscopy(refdata, bitpos, &bitmap, 0, NCHRS); \
+            bitpos += NCHRS; \
+        }
+
+#define getmp(meaning_ptr) \
+        { \
+            meaning_ptr = 0; \
+            bitscopy(refdata, bitpos, &meaning_ptr, 0, mpsize); \
+            bitpos += mpsize; \
+        }
+
+#define getchar(ch) \
+        { \
+            ch = 0; \
+            bitscopy(refdata, bitpos, &ch, 0, 5); \
+            bitpos += 5; \
+        }
+
+#define getnp(next_ptr) \
+        { \
+            next_ptr = 0; \
+            bitscopy(refdata, bitpos, &next_ptr, 0, npsize); \
+            bitpos += npsize; \
+        }
 
 struct Node 
 {
@@ -62,10 +100,7 @@ int type_size[TYPESN];
 int totalnodes = 0; // total nodes generated
 int totalwords = 0; // total words in trie
 int othernodes = 0;
-int mpsize, npsize;
 long memsize = 0;
-long curbit = 0;
-void *refdata;
 
 
 node *create_node();
@@ -190,7 +225,6 @@ int compress(node *parent, int level)
                 {
                     putchar(i); 
                     putnp(nodepos[i]);
-                    break;
                 }
             }
             
@@ -307,7 +341,7 @@ void calculations()
     npsize = expptr;
     memsize = tobyte(memsize);
 
-    //printf("np %d, mp %d, memsize %d\n", npsize, mpsize, memsize);
+    printf("np %d, mp %d, memsize %d\n", npsize, mpsize, memsize);
 }
 
 // search each word on new line from the filename file in trie
@@ -329,11 +363,11 @@ int search_words(char *filename)
     return words_found;
 }
 
-long get_nextlevel(int bitpos, char ch)
+long get_nextlevel(char ch)
 {
     long res = -1, buf;
     unsigned char ch1, ch2;
-    gettype(tp, bitpos);
+    gettype(tp);
     printf("tp %d\n", tp);
     switch(tp)
     {
@@ -341,38 +375,38 @@ long get_nextlevel(int bitpos, char ch)
             break;
         case ONE_T:
         case ONE_MT:
-            getchar(ch1, bitpos);
+            getchar(ch1);
             
             if(ch1 == (ch-'a'))
             {
-                getnp(res, bitpos);
+                getnp(res);
             }
             break;
         case TWO_T:
         case TWO_MT:
-            getchar(ch1, bitpos); 
-            getchar(ch2, bitpos);
+            getchar(ch1); 
+            getchar(ch2);
             if(ch1 == (ch-'a'))
             {
-                getnp(res, bitpos);
+                getnp(res);
             }
             else if(ch2 == (ch-'a'))
             {
-                getnp(res, bitpos);
+                getnp(res);
             } 
             break;
         case FULL_T:
             bitpos += (npsize * (ch - 'a'));
-            getnp(res, bitpos);
+            getnp(res);
             break;
         case OTR_T:
-            getmap(buf, bitpos);
+            getmap(buf);
             if(buf & (1<<(ch-'a')))
             {
                 for(int i = 0; i < (ch - 'a'); i++)
                     if(buf & (1<<i))
                         bitpos += npsize;
-                getnp(res, bitpos);
+                getnp(res);
             }
             break;
     }
@@ -408,32 +442,37 @@ int main(int argc, char *argv[])
     calculations();
 
 
-    refdata = malloc(memsize );
+    refdata = malloc(memsize);
 
     int rootbit = compress(root, 0);
-    printf("root bit pos %ld\n",rootbit);
+    printf("root bit pos %d\n",rootbit);
             
     int a = rootbit, i = 0;
 
+    bitpos = rootbit;
     char *h = "hello\0";
-
-    while(h[i+1] != '\0' && a != -1)
+/*
+    while(h[i+1] != '\0' && bitpos != -1)
     {
-        a = get_nextlevel(a, h[i++]);
-        printf("next node %d\n", a);
+        bitpos = get_nextlevel(h[i++]);
+        printf("next node %d\n", bitpos);
     }
+*/
 
-
-    int b = 11554753, data;
-    gettype(data, b);
+    int b = 2258177, data;
+    gettype(data);
     printf("type %d\n", data);
-    getmap(data, b);
+
+    for(int i = 0; i < 26; i++)
+    {
+        getnp(data);
+        printf("next %d\n", data);
+    }
+    /*getmap(data, b);
     printf("map %x\n", data);
     getnp(data, b);
-    printf("next1 %d\n", data);
-    getnp(data, b);
     printf("next2 %d\n", data);
-
+*/
 
 
     //gettype(a, rootbit);
