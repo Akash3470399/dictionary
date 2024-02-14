@@ -1,8 +1,10 @@
+#! usr/bin/python3
+
 import random
 
 # genrate random meaning for each word in filename
 
-filename = "../data/words" 
+filename = "../data/little" 
 words = []
 
 with open(filename, "r") as file:
