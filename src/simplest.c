@@ -106,6 +106,7 @@ long memsize = 0;
 node *create_node();
 void insert_node(char *word);
 int search_words(char *filename);
+int cmp_search(char *word);
 
 // create & initilize instance of struct Node
 node *create_node()
@@ -206,7 +207,7 @@ int compress(node *parent, int level)
         }
     }
     selfpos = curbit;
-   
+  
     switch(nf)
     {
         case 0:
@@ -286,28 +287,20 @@ int compress(node *parent, int level)
             }
             break;
         default:
-            int map = 0, a;
+            int map = 0,  a;
             tp = OTR_T;
-            bitpos = curbit;
-            printf("exp curbit %d\n", bitpos);
+            
             puttype(tp);
 
             // calculate next pointer map
             for(int i = 0; i < NCHRS; i++)
             {
                 if(parent->nextNode[i] != NULL)
+                {
                     map |= (1<<i);
+                }
             }
-            
-
-            
-            putmap(map);
-            printf("exp1 %x\n", map);
-
-    gettype(a);
-    printf("type %d\n", a);
-    getmap(a);
-    printf("map %x\n", a);
+            putmap(map); 
             for(int i = 0; i < NCHRS; i++)
             {
                 if(parent->nextNode[i] != NULL)
@@ -360,7 +353,7 @@ void calculations()
     printf("totalnode %d, totalwords %d, zero mp(ONE_T, TWO_T) %d\n", totalnodes, totalwords, zmcount);
     printf("np %d, mp %d, memsize %d\n", npsize, mpsize, memsize);
 }
-
+int wc = 0;
 // search each word on new line from the filename file in trie
 // return count of words found, if file not found return -1
 int search_words(char *filename)
@@ -373,8 +366,11 @@ int search_words(char *filename)
     {
         words_found = 0;
         while(fscanf(fp, "%s\n", word) != EOF)
+        {
             words_found += (search(word) == 0)? 0: 1;
-
+            wc += (cmp_search(word) == 0) ? 0 : 1;
+        }
+        printf("cmp wc %d\n", wc);
         fclose(fp);
     }
     return words_found;
@@ -422,9 +418,6 @@ long get_nextlevel(char ch)
     gettype(tp);
     switch(tp)
     {
-        case ZERO_T:
-            res = bitpos - 3;
-            break;
         case ONE_T:
         case ONE_MT:
             getchar(ch1);
@@ -514,10 +507,7 @@ int main(int argc, char *argv[])
 
 
     refdata = malloc(memsize);
-    char *c = (char*)refdata;
 
-    for(int i = 0; i < memsize; i++)
-        c[i] = 0;
     rootbit = compress(root, 0);
    
 
@@ -538,37 +528,17 @@ int main(int argc, char *argv[])
 */
 
 
-    int a;
-    bitpos = 398;
-    gettype(a);
-    printf("type %d\n", a);
-    getmap(a);
-    printf("map %x\n", a);
 
+/*
+    char h[100] = "";
+    FILE *f = fopen("data/little", "rb+");
 
-
-
-
-
-
-
-
-    char h[100];
-    //FILE *f = fopen("data/little", "rb+");
-
-/*    while(f != NULL && fscanf(f, "%s\n", h) != EOF)
+    while(f != NULL && fscanf(f, "%s\n", h) != EOF)
     {       
         printf("%s : %d\n", h, cmp_search(h));
     }
- */   return 0;
-/*
-    while(h[i+1] != '\0' && bitpos != -1)
-    {
-        bitpos = get_nextlevel(h[i++]);
-        printf("next node %d\n", bitpos);
-    }
   */  
-    //printf("\nc %d\n",search_words("data/1m"));
+    printf("\nc %d\n",search_words("data/1m"));
     fclose(fp);
     return 0;
 }
