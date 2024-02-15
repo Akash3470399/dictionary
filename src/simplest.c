@@ -326,7 +326,7 @@ void calculations()
     int filesize, curptr, expptr = 10;
     FILE *fp;
 
-    if((fp = fopen("data/len_littlem","rb")) == NULL)
+    if((fp = fopen("data/len_meaning","rb")) == NULL)
         return;
     fseek(fp, 0, SEEK_END);
     filesize = ftell(fp);
