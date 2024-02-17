@@ -6,4 +6,5 @@ run
 try*
 */run
 data/*
+stat/*
 *.swp
