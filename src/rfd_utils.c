@@ -3,9 +3,6 @@
 #include "defs.h"
 
 
-
-
-
 // return the bitmap, provided bitpos is appropiately set to node
 int get_mmap()
 {

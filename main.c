@@ -9,7 +9,7 @@ int main()
 
     printf("res : %d\n", res);
 
-    printf("search %d\n", is_word_present("hellosldfjls"));
+    printf("search %d\n", is_word_present("hello"));
 
     return 0;
 }

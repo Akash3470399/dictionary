@@ -7,12 +7,10 @@
 #include "bitsarr.h"
 #include "rfd_utils.h"
 
-
 #undef _mpsize
 #undef _npsize
 #define _mpsize mpsize
 #define _npsize npsize 
-
 
 #define TYPESN 7
 #define tobyte(n) ((int)(ceil((float)n/(1<<3))))
@@ -493,7 +491,6 @@ int main(int argc, char *argv[])
     ptr_calc();
 
     refdata = malloc(memsize);
-
     // compress trie and store to refdata
     rootbit = compress(root);
     
@@ -503,7 +500,6 @@ int main(int argc, char *argv[])
     // store refdata to persitent storage
     store_rfd();
     printf("root bit pos %d\n",rootbit);
-    
     fclose(wordsfp);
     return 0;
 }

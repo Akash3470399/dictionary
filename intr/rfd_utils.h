@@ -5,8 +5,8 @@
 
 #define _rfd refdata 
 #define _bpos bitpos
-#define _mpsize 0
-#define _npsize 0 
+#define _mpsize mpsize 
+#define _npsize npsize 
 
 extern int bitpos, npsize, mpsize;
 extern enum Type tp;
