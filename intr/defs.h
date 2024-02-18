@@ -47,16 +47,14 @@ There are total 7 types
 */
 
 
-// dictionary reference data structure
+// dictionary reference data metadata structure
 typedef struct 
 {
-    void *rfd;      // pointer to reference data
-    int rfdsize;    // size of reference data in Bytes
     int totalwords; // total no of words in dictionary
     int rootsbit;   // bit number of root node
     uchar npsize;   // no of bits for next node pointer
     uchar mpsize;   // no of bits for meaning pointer
-}dictrfd;
+}rfdmeta;
 
 
 #endif

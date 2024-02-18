@@ -5,62 +5,31 @@
 
 #include "defs.h"
 #include "bitsarr.h"
-#include "rfd_getters.h"
+#include "rfd_utils.h"
 
-typedef struct Node node;
 
-#define _rfd refdata 
-#define _bpos bitpos
+#undef _mpsize
+#undef _npsize
+#define _mpsize mpsize
+#define _npsize npsize 
+
+
 #define TYPESN 7
 #define tobyte(n) ((int)(ceil((float)n/(1<<3))))
 #define ptrsize(n) ((int)ceil((float)(log(n)/log(2))))
 
 
-// put appropiate values of node properties at bit position curbit
-// requirement is curbit, refdata is globally defined
-
-
-#define puttype(tp) \
-        { \
-            bitscopy(&tp, 0, _rfd, curbit, 3); \
-            curbit += 3; \
-        }
-
-#define putmap(bitmap) \
-        { \
-            bitscopy(&bitmap , 0, _rfd, curbit, NCHRS); \
-            curbit += NCHRS; \
-        }
-
-#define putmp(meaning_ptr) \
-        { \
-            bitscopy(&meaning_ptr, 0, _rfd, curbit, mpsize); \
-            curbit += mpsize; \
-        }
-
-#define putchar(ch) \
-        { \
-            bitscopy(&ch, 0, _rfd, curbit, 5); \
-            curbit += 5; \
-        }
-
-#define putnp(next_ptr) \
-        { \
-            bitscopy(&next_ptr, 0, _rfd, curbit, npsize); \
-            curbit += npsize; \
-        }
-
+typedef struct Node node;
 struct Node 
 {
-    int mlist;          // meanings available at a node
-    uchar mcount;       // total meanings available at a node 
+    int mlist;                  // bitmap of meanings available at a node
+    uchar mcount;               // total meanings available at a node 
     struct Node *nextNode[26];  // next node pointers
 }*root;
 
 int nncount[27];    // next node pointer count, value at index i gives node count with i next node pointers
 int nnmcount[27];   // meanings count, value at index i gives total meanings availables for all nodes with i next node pointers 
-int zmcount;       // store count of nodes without meaning of type ONE_T, TWO_T 
-
+int zmcount;        // store count of nodes without meaning of type ONE_T, TWO_T 
 
 int type_size[TYPESN];
 int totalnodes = 0; // total nodes generated
@@ -71,18 +40,16 @@ int rootbit, npsize, mpsize;
 
 enum Type tp;
 int curbit = 0, bitpos = 0;
-void *refdata;
+uchar *refdata;
 
 
-char *tosearch_file = "data/words";
+char *tosearch_file = "data/1m";
 char *word_file = "data/words";
 char *lenmean_file = "data/len_meaning";
-
+char *rfd_file = "data/rfd";
 
 node *create_node();
 void insert_node(char *word);
-int get_mmap();
-int get_nextlevel(char ch);
 
 // create & initilize instance of struct Node
 node *create_node()
@@ -340,9 +307,10 @@ void ptr_calc()
         memsize += (othernodes * NCHRS);
         expptr = ptrsize(memsize);
     }while(curptr < expptr);
+    
     npsize = expptr;
     memsize = tobyte(memsize);
-    memsize += sizeof(dictrfd);
+    memsize += 2 + sizeof(rfdmeta) ;
 
     printf("totalnode %d, totalwords %d, zero mp(ONE_T, TWO_T) %d\n", totalnodes, totalwords, zmcount);
     printf("np %d, mp %d, memsize %d\n", npsize, mpsize, memsize);
@@ -372,7 +340,7 @@ int search_words(char *filename)
     return nwc;
 }
 
-
+/*
 // return the bitmap, provided bitpos is appropiately set to node
 int get_mmap()
 {
@@ -464,6 +432,26 @@ int get_nextlevel(char ch)
 
     return res;
 }
+*/
+
+void store_rfd()
+{
+    FILE *rfdfp;
+    rfdmeta *data;
+
+    data = (rfdmeta*)&refdata[memsize-sizeof(rfdmeta)-1];
+
+    data->totalwords = totalwords;
+    data->rootsbit = rootbit;
+    data->npsize = npsize;
+    data->mpsize = mpsize;
+
+    if((rfdfp = fopen(rfd_file, "wb+")) != NULL)
+    {
+        fwrite(refdata, 1, memsize, rfdfp);
+        fclose(rfdfp);
+    }
+}
 
 // requirements
 // - words are not having special charecters
@@ -508,11 +496,14 @@ int main(int argc, char *argv[])
 
     // compress trie and store to refdata
     rootbit = compress(root);
-   
-    printf("root bit pos %d\n",rootbit);
-    search_words(tosearch_file);        
     
 
+    search_words(tosearch_file);        
+
+    // store refdata to persitent storage
+    store_rfd();
+    printf("root bit pos %d\n",rootbit);
+    
     fclose(wordsfp);
     return 0;
 }

@@ -1,11 +1,15 @@
 cc = gcc
-cflags = -lm -I./intr/
+cflags = -lm -I./intr/ -g
 
 srcfiles = $(wildcard src/*.c)
 objfiles = $(patsubst src/%.c, obj/%.o, $(srcfiles))
 
-run : $(objfiles)
-	$(cc) $^ -o run $(cflags)
+
+cmptrie : obj/cmptrie.o obj/bitsarr.o obj/rfd_utils.o
+	$(cc) $^ main.c -o cmptrie $(cflags)
+
+simplest : obj/simplest.o obj/bitsarr.o obj/rfd_utils.o
+	$(cc) $^ -o simplest $(cflags)
 
 obj/%.o : src/%.c
 	@mkdir -p $(@D)
@@ -13,5 +17,5 @@ obj/%.o : src/%.c
 
 .PHONY : clean
 clean:
-	rm -f obj/* run
+	rm -f obj/* cmptrie simplest
 
