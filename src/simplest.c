@@ -7,11 +7,6 @@
 #include "bitsarr.h"
 #include "rfd_utils.h"
 
-#undef _mpsize
-#undef _npsize
-#define _mpsize mpsize
-#define _npsize npsize 
-
 #define TYPESN 7
 #define tobyte(n) ((int)(ceil((float)n/(1<<3))))
 #define ptrsize(n) ((int)ceil((float)(log(n)/log(2))))
@@ -34,12 +29,10 @@ int totalnodes = 0; // total nodes generated
 int totalwords = 0;
 int othernodes = 0;
 int memsize = 0;
-int rootbit, npsize, mpsize;
 
 enum Type tp;
-int curbit = 0, bitpos = 0;
+int rootbit, npsize, mpsize, bitpos = 0, curbit = 0;
 uchar *refdata;
-
 
 char *tosearch_file = "data/1m";
 char *word_file = "data/words";
@@ -308,7 +301,7 @@ void ptr_calc()
     
     npsize = expptr;
     memsize = tobyte(memsize);
-    memsize += 2 + sizeof(rfdmeta) ;
+    memsize += 2 + (4 * sizeof(int)) ;
 
     printf("totalnode %d, totalwords %d, zero mp(ONE_T, TWO_T) %d\n", totalnodes, totalwords, zmcount);
     printf("np %d, mp %d, memsize %d\n", npsize, mpsize, memsize);
@@ -434,15 +427,14 @@ int get_nextlevel(char ch)
 
 void store_rfd()
 {
+    int *num = (int*)&refdata[memsize - (4*sizeof(int)) -1];
     FILE *rfdfp;
-    rfdmeta *data;
 
-    data = (rfdmeta*)&refdata[memsize-sizeof(rfdmeta)-1];
 
-    data->totalwords = totalwords;
-    data->rootsbit = rootbit;
-    data->npsize = npsize;
-    data->mpsize = mpsize;
+    *num++ = totalwords;
+    *num++ = rootbit;
+    *num++ = npsize;
+    *num = mpsize;
 
     if((rfdfp = fopen(rfd_file, "wb+")) != NULL)
     {

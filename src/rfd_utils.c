@@ -2,7 +2,6 @@
 #include "rfd_utils.h"
 #include "defs.h"
 
-
 // return the bitmap, provided bitpos is appropiately set to node
 int get_mmap()
 {
@@ -14,15 +13,15 @@ int get_mmap()
             getmap(res);
             break;
         case ONE_MT:
-            bitpos += (5 + _npsize);
+            bitpos += (5 + npsize);
             getmap(res);
             break;
         case TWO_MT:
-            bitpos += (10 + (_npsize<<1));
+            bitpos += (10 + (npsize<<1));
             getmap(res);
             break;
         case FULL_T:
-            bitpos += (26*_npsize);
+            bitpos += (26*npsize);
             getmap(res);
             break;
         case OTR_T:
@@ -31,7 +30,7 @@ int get_mmap()
             {
                 for(int i = 0; i < NCHRS; i++)
                     if(map & (1<<i))
-                        bitpos += _npsize;
+                        bitpos += npsize;
             }
             getmap(res);
     }
@@ -70,13 +69,13 @@ int get_nextlevel(char ch)
             }
             else if(ch2 == ch)
             {
-                bitpos += _npsize;
+                bitpos += npsize;
                 getnp(res);
             } 
             break;
 
         case FULL_T:
-            bitpos += (_npsize * ch);
+            bitpos += (npsize * ch);
             getnp(res);
             break;
 
@@ -86,7 +85,7 @@ int get_nextlevel(char ch)
             {
                 for(int i = 0; i < ch; i++)
                     if(map & (1<<i))
-                        bitpos += _npsize;
+                        bitpos += npsize;
                 getnp(res);
             }
     }

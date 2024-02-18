@@ -46,15 +46,4 @@ There are total 7 types
 		 meaning pointer start
 */
 
-
-// dictionary reference data metadata structure
-typedef struct 
-{
-    int totalwords; // total no of words in dictionary
-    int rootsbit;   // bit number of root node
-    uchar npsize;   // no of bits for next node pointer
-    uchar mpsize;   // no of bits for meaning pointer
-}rfdmeta;
-
-
 #endif

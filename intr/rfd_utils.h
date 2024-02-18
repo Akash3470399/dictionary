@@ -3,11 +3,6 @@
 #ifndef RFD_UTILS_H
 #define RFD_UTILS_H
 
-#define _rfd refdata 
-#define _bpos bitpos
-#define _mpsize mpsize 
-#define _npsize npsize 
-
 extern int bitpos, npsize, mpsize;
 extern enum Type tp;
 extern uchar *refdata;
@@ -23,36 +18,36 @@ extern uchar *refdata;
 #define gettype(tp) \
         { \
             tp = 0; \
-            bitscopy(_rfd, _bpos, &tp, 0, 3); \
-            _bpos += 3; \
+            bitscopy(refdata, bitpos, &tp, 0, 3); \
+            bitpos += 3; \
         }
 
 #define getmap(bitmap) \
         { \
             bitmap = 0; \
-            bitscopy(_rfd, _bpos, &bitmap, 0, NCHRS); \
-            _bpos += NCHRS; \
+            bitscopy(refdata, bitpos, &bitmap, 0, NCHRS); \
+            bitpos += NCHRS; \
         }
 
 #define getmp(meaning_ptr) \
         { \
             meaning_ptr = 0; \
-            bitscopy(_rfd, _bpos, &meaning_ptr, 0, _mpsize); \
-            _bpos += _mpsize; \
+            bitscopy(refdata, bitpos, &meaning_ptr, 0, mpsize); \
+            bitpos += mpsize; \
         }
 
 #define getchar(ch) \
         { \
             ch = 0; \
-            bitscopy(_rfd, _bpos, &ch, 0, 5); \
-            _bpos += 5; \
+            bitscopy(refdata, bitpos, &ch, 0, 5); \
+            bitpos += 5; \
         }
 
 #define getnp(next_ptr) \
         { \
             next_ptr = 0; \
-            bitscopy(_rfd, _bpos, &next_ptr, 0, _npsize); \
-            _bpos += _npsize; \
+            bitscopy(refdata, bitpos, &next_ptr, 0, npsize); \
+            bitpos += npsize; \
         }
 
 
@@ -63,32 +58,32 @@ extern uchar *refdata;
 
 #define puttype(tp) \
         { \
-            bitscopy(&tp, 0, _rfd, curbit, 3); \
+            bitscopy(&tp, 0, refdata, curbit, 3); \
             curbit += 3; \
         }
 
 #define putmap(bitmap) \
         { \
-            bitscopy(&bitmap , 0, _rfd, curbit, NCHRS); \
+            bitscopy(&bitmap , 0, refdata, curbit, NCHRS); \
             curbit += NCHRS; \
         }
 
 #define putmp(meaning_ptr) \
         { \
-            bitscopy(&meaning_ptr, 0, _rfd, curbit, _mpsize); \
-            curbit += _mpsize; \
+            bitscopy(&meaning_ptr, 0, refdata, curbit, mpsize); \
+            curbit += mpsize; \
         }
 
 #define putchar(ch) \
         { \
-            bitscopy(&ch, 0, _rfd, curbit, 5); \
+            bitscopy(&ch, 0, refdata, curbit, 5); \
             curbit += 5; \
         }
 
 #define putnp(next_ptr) \
         { \
-            bitscopy(&next_ptr, 0, _rfd, curbit, _npsize); \
-            curbit += _npsize; \
+            bitscopy(&next_ptr, 0, refdata, curbit, npsize); \
+            curbit += npsize; \
         }
 
 

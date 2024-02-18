@@ -5,34 +5,36 @@
 #include "rfd_utils.h"
 #include "bitsarr.h"
 
-#undef _mpsize
-#undef _npsize
-#define _mpsize rfd_metadata->mpsize
-#define _npsize rfd_metadata->npsize
-
-rfdmeta *rfd_metadata = NULL;
 char *rfd_file = "data/rfd";
-uchar *refdata;
 
+uchar *refdata;
 enum Type tp;
-int bitpos;
+int bitpos, rootbit, npsize, mpsize, totalwords;
 
 int init_rfd()
 {
-    int res = 0, buf;
+    int res = 0, memsize, *num;
     FILE *rfdfp;
 
     if((rfdfp = fopen(rfd_file, "rb+")) != NULL)
     {
         fseek(rfdfp, 0, SEEK_END);
-        buf = ftell(rfdfp);
+        memsize = ftell(rfdfp);
         fseek(rfdfp, 0, SEEK_SET);
     
-        refdata = malloc(buf);
+        refdata = malloc(memsize);
 
-        fread(refdata, 1, buf, rfdfp);
-        
-        rfd_metadata = (rfdmeta *)&refdata[buf-sizeof(rfdmeta)-1];
+        fread(refdata, 1, memsize, rfdfp);
+
+        // pointer to metadata 
+        num = (int*)&refdata[memsize - (4*sizeof(int)) -1];
+
+        // extracting metadata
+        totalwords = *num++;
+        rootbit = *num++;
+        npsize = *num++;
+        mpsize = *num;
+
         fclose(rfdfp);
 
         res = 1;
@@ -44,7 +46,7 @@ int is_word_present(char *word)
 {
     int res = 0, i = 0, meaning;
     
-    bitpos = rfd_metadata->rootsbit;
+    bitpos = rootbit;
     while((word[i+1] != '\0' && word[i+1] != '\n') && (bitpos != -1))
     {
         bitpos = get_nextlevel(word[i++]);
