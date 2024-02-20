@@ -13,28 +13,46 @@ unsigned char len(char *line)
 }
 
 
+char *mean_len = "../data/len_meaning";
+char *word_mp = "../data/mpfile"; 
+
 int main(int argc, char *argv[])
 {
+    long curbyte = 1, wordno = 0;
     unsigned char mapping[256];
-    FILE *fp, *wfp;
+    FILE *wordfp, *len_meanfp, *mpfp;
 
-    if(argc < 3 || (fp = fopen(argv[1], "rb")) == NULL)
+    if(argc < 2 || (wordfp = fopen(argv[1], "rb")) == NULL)
     {
         printf("Provide correct meaning file\n");
         return 1;
     }
 
-    if((wfp = fopen(argv[2], "wb+")) == NULL)
+    if((len_meanfp= fopen(mean_len, "wb+")) == NULL)
     {
-        printf("Unable to create %s\n", argv[2]);
+        printf("Unable to create %s\n", mean_len);
         return 2;
     }
 
-    while(fgets(mapping+1, 255, fp))
+    if((mpfp = fopen(word_mp, "wb+")) == NULL)
     {
-        mapping[0] = len(mapping+1);
-        fwrite(mapping, mapping[0]+1, 1, wfp);
+        printf("unable to create %s\n", word_mp);
+        return 3;
     }
+    
+    fwrite(mapping, 1, 1, len_meanfp);
+    while(fgets(mapping+1, 255, wordfp))
+    {
+        fprintf(mpfp, "%ld\n", curbyte);
+        mapping[0] = len(mapping+1);
+        curbyte += mapping[0] + 1;
+        fwrite(mapping, mapping[0]+1, 1, len_meanfp);
+
+    }
+    
+    fclose(mpfp);
+    fclose(len_meanfp);
+    fclose(wordfp);
 
     return 0;
 }
