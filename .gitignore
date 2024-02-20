@@ -8,3 +8,8 @@ try*
 data/*
 stat/*
 *.swp
+logs
+*db
+cmptrie
+simplest
+
