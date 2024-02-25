@@ -1,0 +1,21 @@
+#!/usr/bin/bash
+
+# calculate sum of each entry in column from file
+# if 2 arguments provied it calculated total of column
+#   first argument  : column number 
+#   second argument : filename 
+# if 4 arguments privided then it calcu
+#   first argument  : column number
+#   second argument : starting row number
+#   third argument  : end row number
+#   forth argument  : filename 
+
+
+if [ $# -eq 2 ]; then
+    awk -v col="$1" '{ sum += $col} END { print sum;}' $2
+elif [ $# -eq 4 ]; then
+    awk -v col="$1" -v from=$2 -v to=$3 'NR>=from && NR<=to { sum += $col} END { print sum;}' $4
+else
+    echo "invalid use";
+fi
+

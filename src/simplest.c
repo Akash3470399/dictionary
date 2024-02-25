@@ -10,7 +10,7 @@
 #define TYPESN 7
 #define tobyte(n) ((int)(ceil((float)n/(1<<3))))
 #define ptrsize(n) ((int)ceil((float)(log(n)/log(2))))
-
+#define WORDLEN 100
 
 typedef struct Node node;
 struct Node 
@@ -40,7 +40,7 @@ char *lenmean_file = "data/len_meaning";
 char *rfd_file = "data/rfd";
 
 node *create_node();
-void insert_node(char *word);
+void insert_node(char *word, long mp);
 
 // create & initilize instance of struct Node
 node *create_node()
@@ -59,7 +59,7 @@ node *create_node()
 // requirements of function
 //  - root is initilize
 //  - word is having only alphabates only & terminated with '\0'
-void insert_node(char *word)
+void insert_node(char *word, long mp)
 {
     node *base = root;
     int i = 0;
@@ -312,7 +312,7 @@ void ptr_calc()
 // return count of words found, if file not found return -1
 int search_words(char *filename)
 {
-    char word[100];
+    char word[WORDLEN];
     int nwc = -1, cwc = -1;
     FILE *fp = fopen(filename, "rb+");
     
@@ -443,13 +443,37 @@ void store_rfd()
     }
 }
 
+// convert any UPPERCASE letter to lowercase in word
+// returns 1 if word only contains alphabates else 0
+int validate_and_fix(char *word)
+{
+    int i = 0,res = 1;
+    char ch = word[i];
+    while(ch != '\0' && ch != '\n' && res == 1)
+    {
+        if(ch >= 'A' && ch <= 'Z')
+            word[i] |= 0x60;
+        else if(!(ch >= 'a' && ch <= 'z') || ((i+1) == WORDLEN))
+            res = 0;
+        
+        i += 1;
+        ch = word[i];
+    }
+    
+    if(word[i] == '\n')  word[i] = '\0';
+
+    return res;
+}
+
+
 // requirements
 // - words are not having special charecters
 // - only small case letters are allowed 
 int main(int argc, char *argv[])
 {
     int n;
-    char word[100];
+    long mp;
+    char word[WORDLEN];
     FILE *wordsfp, *statfp;
    
     if(argc != 2 || (wordsfp = fopen(argv[1], "r")) == NULL)
@@ -462,8 +486,11 @@ int main(int argc, char *argv[])
     root = create_node();
 
     // insert each word to trie
-    while(fscanf(wordsfp,"%s\n",word) != EOF)
-        insert_node(word);
+    while(fscanf(wordsfp,"%ld,%s\n", &mp, word) != EOF)
+    {
+        if(validate_and_fix(word))
+            insert_node(word, mp);
+    }
     
     // traverse through trie & collect data for stat
     collect_data(root);     

@@ -1,0 +1,23 @@
+#! /usr/bin/bash
+
+# $1 is words file
+# $2 is directory for files genrated (without / at the end)
+# this scrip genrate
+#   1. meanings file
+#   2. len_meaning : file with meanings where meaning length is prepended to meaning
+#                    (n,meaning with n bytes) => so each entry is of n+1 byte
+#                    (first byte in file is unused, so entries starts from second byte)
+#
+#                    start interpreting from second byte)
+#   3. sinput file : input file for simplest program
+
+
+if [ $# -eq 2 ] && [ -r $1 ] && [ -d $2 ]; then
+    echo $1 > tmp
+    python3 gen_meanings.py < tmp > $2/meanings
+    (gcc enc_mean.c && (./a.out $2/meanings $2/len_meaning > mps))
+    paste -d ',' mps $1 > $2/sinput
+    rm -f tmp mps a.out
+else
+    echo "invalid arguments";
+fi

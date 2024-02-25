@@ -1,7 +1,11 @@
 #! /usr/bin/python3
 
 import random
-filename = "../data/words"
+
+#program to pick n random words from word file provied
+
+# input is word file
+filename = input() 
 n = 30 
 
 words = []

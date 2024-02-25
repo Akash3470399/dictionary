@@ -19,5 +19,5 @@ obj/%.o : src/%.c
 
 .PHONY : clean
 clean:
-	rm -f obj/{cmptrie.o,rfd_utils.o,simplest.o} cmptrie simplest logs
+	rm -f obj/* cmptrie simplest logs
 
