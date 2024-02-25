@@ -16,8 +16,9 @@ typedef struct Node node;
 struct Node 
 {
     int mlist;                  // bitmap of meanings available at a node
-    uchar mcount;               // total meanings available at a node 
-    struct Node *nextNode[26];  // next node pointers
+    uchar mcount, ncount;               // total meanings available at a node 
+    struct Node *nextNode[NCHRS];  // next node pointers
+    long mps[NCHRS];
 }*root;
 
 int nncount[27];    // next node pointer count, value at index i gives node count with i next node pointers
@@ -41,14 +42,15 @@ char *rfd_file = "data/rfd";
 
 node *create_node();
 void insert_node(char *word, long mp);
+int get_mmap();
+int get_nextlevel(char ch);
 
 // create & initilize instance of struct Node
 node *create_node()
 {
     node *n;
     n = (node*)malloc(sizeof(node));
-    n->mlist = 0;
-    n->mcount = 0;
+    n->mlist = 0, n->ncount = 0, n->mcount = 0;
     for(int i = 0; i < NCHRS; i++)
         n->nextNode[i] = NULL;
     totalnodes += 1;
@@ -68,7 +70,10 @@ void insert_node(char *word, long mp)
     while(word[i+1] != '\0' && word[i+1] != '\n')
     {
         if(base->nextNode[idx] == NULL)
+        {
             base->nextNode[idx] = create_node();
+            base->ncount += 1;
+        }
 
         base = base->nextNode[idx];
         idx = word[++i] - 'a';
@@ -78,6 +83,7 @@ void insert_node(char *word, long mp)
     {
         base->mcount += 1;
         totalwords += 1;
+        base->mps[idx] = mp;
     }
     base->mlist |= 1<<idx;
 }
@@ -132,27 +138,21 @@ int cmp_search(char *word)
 //  - othernodes : nodes with type OTR_T
 void collect_data(node *parent)
 {
-    int nf = 0;
     if(parent != NULL)
     {
         for(int i = 0; i < NCHRS; i++)
-        {
             if(parent->nextNode[i] != NULL)
-            {
-                nf += 1;
                 collect_data(parent->nextNode[i]);
-            }
-        }
 
-        nncount[nf] += 1;
-        nnmcount[nf] += parent->mcount;
+        nncount[parent->ncount] += 1;
+        nnmcount[parent->ncount] += parent->mcount;
     
         // nodes with OTR_T
-        if(!(nf == 1 || nf == 2 || nf == 0 || nf == 26))
+        if(!(parent->ncount == 1 || parent->ncount == 2 || parent->ncount == 0 || parent->ncount == 26))
             othernodes += 1;
 
         // nodes with ONE_T or TWO_T
-        if((nf == 1 || nf == 2) &&  parent->mcount == 0)
+        if((parent->ncount == 1 || parent->ncount == 2) &&  parent->mcount == 0)
             zmcount += 1;
     }
 }
@@ -163,19 +163,15 @@ void collect_data(node *parent)
 // with appropiate pointers calculated & store it to refdata
 int compress(node *parent)
 {
-    int nf = 0, nodepos[NCHRS], selfpos;
+    int nodepos[NCHRS], selfpos;
 
     for(int i = 0; i < NCHRS; i++)
-    {
         if(parent->nextNode[i] != NULL)
-        {
-            nf += 1;
             nodepos[i] = compress(parent->nextNode[i]);
-        }
-    }
+    
     selfpos = curbit;
   
-    switch(nf)
+    switch(parent->ncount)
     {
         case 0:
             tp = ZERO_T;
@@ -331,7 +327,6 @@ int search_words(char *filename)
     return nwc;
 }
 
-/*
 // return the bitmap, provided bitpos is appropiately set to node
 int get_mmap()
 {
@@ -423,7 +418,6 @@ int get_nextlevel(char ch)
 
     return res;
 }
-*/
 
 void store_rfd()
 {
