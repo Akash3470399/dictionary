@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <time.h>
 #include <math.h>
 
@@ -37,13 +38,15 @@ uchar *refdata;
 
 char *tosearch_file = "data/1m";
 char *word_file = "data/words";
-char *lenmean_file = "data/len_meaning";
+char *len_meaning_file = "data/len_meaning";
 char *rfd_file = "data/rfd";
 
 node *create_node();
 void insert_node(char *word, long mp);
 int get_mmap();
 int get_nextlevel(char ch);
+long cmp_search(char *word);
+long normal_search(char *word);
 
 // create & initilize instance of struct Node
 node *create_node()
@@ -52,7 +55,10 @@ node *create_node()
     n = (node*)malloc(sizeof(node));
     n->mlist = 0, n->ncount = 0, n->mcount = 0;
     for(int i = 0; i < NCHRS; i++)
+    {
         n->nextNode[i] = NULL;
+        n->mps[i] = 0;
+    }
     totalnodes += 1;
     return n;
 }
@@ -90,11 +96,12 @@ void insert_node(char *word, long mp)
 
 
 // search word in normal trie (with c pointers)
-int normal_search(char *word)
+long normal_search(char *word)
 {
     node *base = root;
     int i = 0;
-    char idx = word[i] - 'a', result = 0;
+    char idx = word[i] - 'a';
+    long result = 0;
 
     while((base != NULL) && (word[i+1] != '\0'))
     {
@@ -103,30 +110,77 @@ int normal_search(char *word)
     }
     
     if((base != NULL) && (word[i+1] == '\0') && (base->mlist & 1<<idx))
-        result = 1;
+        result = base->mps[idx];
 
     return result;
 }
 
+int get_meaning(char *word, char *meaning)
+{
+    long mp = cmp_search(word);
+    uchar len ;
+    FILE *fp;
 
+    if(mp && ((fp= fopen(len_meaning_file, "rb") ) != NULL))
+    {
+        fseek(fp, mp, SEEK_SET);
+        fread(&len, 1, 1, fp);
+        fread(meaning, 1, len, fp);
+        meaning[len] = '\0';
+        fclose(fp);
+    }
+    
+    return (mp != 0);
+}
+
+/*
 int cmp_search(char *word)
 {
+    uchar ch;
     int res = 0, i = 0, meaning;
     
     bitpos = rootbit;
     while((word[i+1] != '\0' && word[i+1] != '\n') && (bitpos != -1))
-    {
         bitpos = get_nextlevel(word[i++]);
-    }
 
     if(bitpos != -1)
     {
+        ch = word[i] - 'a';
         meaning = get_mmap();
-        res = ((meaning & 1<<(word[i]-'a')) >> (word[i])-'a');
+        
+        res = ((meaning & 1<<ch) >> ch);
+
     }
 
     return !(res == 0);
 }
+*/
+
+long cmp_search(char *word)
+{
+    uchar ch;
+    int i = 0, meaning;
+    long res = 0;
+    
+    bitpos = rootbit;
+    while((word[i+1] != '\0' && word[i+1] != '\n') && (bitpos != -1))
+        bitpos = get_nextlevel(word[i++]);
+
+    if(bitpos != -1)
+    {
+        ch = word[i] - 'a';
+        meaning = get_mmap();
+        
+        res = ((meaning & 1<<ch) >> ch);
+        
+        for(int i = 0; (i <= ch) && res; i++)
+            if(meaning & (1<<i))
+                getmp(res);
+    }
+
+    return res;
+}
+
 
 
 
@@ -178,9 +232,10 @@ int compress(node *parent)
             puttype(tp);
             putmap(parent->mlist);
 
-            for(int i = 0; i < parent->mcount; i++)
+            for(int i = 0; i < NCHRS; i++)
             {
-                putmp(parent->mlist);
+                if(parent->mps[i] != 0)
+                    putmp(parent->mps[i]);
             }
             break;
         case 1:
@@ -200,9 +255,10 @@ int compress(node *parent)
             if(tp == ONE_MT)
             {
                 putmap(parent->mlist);  // meaning bitmap
-                for(int i = 0; i < parent->mcount; i++)
+                for(int i = 0; i < NCHRS; i++)
                 {   
-                    putmp(parent->mlist);   // actual meaning
+                    if(parent->mps[i] != 0)
+                    putmp(parent->mps[i]);   // actual meaning
                 }
             }
             break;
@@ -221,8 +277,9 @@ int compress(node *parent)
             if(tp == TWO_MT)
             {
                 putmap(parent->mlist);  // meaning bitmap
-                for(int i = 0; i < parent->mcount; i++)
-                    putmp(parent->mlist);   // actual meaning
+                for(int i = 0; i < NCHRS; i++)
+                    if(parent->mps[i] != 0)
+                    putmp(parent->mps[i]);   // actual meaning
             }
             break;
         case 26:
@@ -233,15 +290,18 @@ int compress(node *parent)
 
             putmap(parent->mlist);
             
-            for(int i = 0; i < parent->mcount; i++)
-                putmp(parent->mlist);
+            for(int i = 0; i < NCHRS; i++)
+                if(parent->mps[i] != 0)
+                    putmp(parent->mps[i]);
             break;
         default:
-            int map = 0,  lastpos;
+            int map = 0;
+            long  lastpos;
             tp = OTR_T;
             
             puttype(tp);
 
+            // shifting forword curbit to nps
             curbit = selfpos + 3 + NCHRS;
             // calculate next pointer map
             for(int i = 0; i < NCHRS; i++)
@@ -254,13 +314,16 @@ int compress(node *parent)
             }
             lastpos = curbit;
            
+            // shifting curbit back to np bitmap
             curbit = selfpos + 3;
             putmap(map); 
-             
+            
+            // shifting curbit to mlist position
             curbit = lastpos;
             putmap(parent->mlist);
-            for(int i = 0; i < parent->mcount; i++)
-                putmp(parent->mlist);
+            for(int i = 0; i < NCHRS; i++)
+                if(parent->mps[i] != 0)
+                putmp(parent->mps[i]);
     }
     
     //printf("start %d, cf %d, type %d\n", selfpos, nf, tp);
@@ -273,7 +336,7 @@ void ptr_calc()
     int filesize, curptr, expptr = 10;
     FILE *fp;
 
-    if((fp = fopen(lenmean_file,"rb")) == NULL)
+    if((fp = fopen(len_meaning_file,"rb")) == NULL)
         return;
     fseek(fp, 0, SEEK_END);
     filesize = ftell(fp);
@@ -317,8 +380,8 @@ int search_words(char *filename)
         nwc = 0, cwc = 0;
         while(fscanf(fp, "%s\n", word) != EOF)
         {
-            nwc += normal_search(word);
-            cwc += cmp_search(word);
+            nwc += (normal_search(word) != 0);
+            cwc += (cmp_search(word) != 0);
         }
         printf("wc (normal trie search)     : %d\n", nwc);
         printf("wc (compressed trie search) : %d\n", cwc);
@@ -507,9 +570,8 @@ int main(int argc, char *argv[])
     // compress trie and store to refdata
     rootbit = compress(root);
     
-
     search_words(tosearch_file);        
-
+    
     // store refdata to persitent storage
     store_rfd();
     printf("root bit pos %d\n",rootbit);
