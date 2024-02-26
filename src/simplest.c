@@ -36,7 +36,7 @@ enum Type tp;
 int rootbit, npsize, mpsize, bitpos = 0, curbit = 0;
 uchar *refdata;
 
-char *tosearch_file = "data/1m";
+char *tosearch_file = "data/w3.txt";
 char *word_file = "data/words";
 char *len_meaning_file = "data/len_meaning";
 char *rfd_file = "data/rfd";
@@ -371,7 +371,7 @@ void ptr_calc()
 // return count of words found, if file not found return -1
 int search_words(char *filename)
 {
-    char word[WORDLEN];
+    char word[WORDLEN], meaning[1000];
     int nwc = -1, cwc = -1;
     FILE *fp = fopen(filename, "rb+");
     
@@ -500,6 +500,17 @@ void store_rfd()
     }
 }
 
+void free_trie(node *parent)
+{
+    if(parent)
+    {
+        for(int i = 0; i < NCHRS; i++)
+            if(parent->nextNode[i])
+                free_trie(parent->nextNode[i]);
+        free(parent);
+    }
+}
+
 // convert any UPPERCASE letter to lowercase in word
 // returns 1 if word only contains alphabates else 0
 int validate_and_fix(char *word)
@@ -574,6 +585,7 @@ int main(int argc, char *argv[])
     
     // store refdata to persitent storage
     store_rfd();
+    free_trie(root);
     printf("root bit pos %d\n",rootbit);
     fclose(wordsfp);
     return 0;
