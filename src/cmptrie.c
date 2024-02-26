@@ -5,36 +5,34 @@
 #include "rfd_utils.h"
 #include "bitsarr.h"
 
-char *rfd_file = "data/rfd";
-
-uchar *refdata;
-enum Type tp;
-int bitpos, rootbit, npsize, mpsize, totalwords;
-
-int init_rfd()
+int init_refdata_info(char *rfd_file, refdata_info **rfd)
 {
-    int res = 0, memsize, *num;
+    int res = 0;
+    long memsize, *value;
     FILE *rfdfp;
+    refdata_info r;
 
-    if((rfdfp = fopen(rfd_file, "rb+")) != NULL)
+    if(((rfdfp = fopen(rfd_file, "rb+")) != NULL) && rfd != NULL)
     {
         fseek(rfdfp, 0, SEEK_END);
         memsize = ftell(rfdfp);
         fseek(rfdfp, 0, SEEK_SET);
     
-        refdata = malloc(memsize);
+        r.refdata = malloc(memsize);
 
-        fread(refdata, 1, memsize, rfdfp);
+        fread(r.refdata, 1, memsize, rfdfp);
 
         // pointer to metadata 
-        num = (int*)&refdata[memsize - (4*sizeof(int)) -1];
+        value = (long*)&(r.refdata[memsize - (4*sizeof(long)) -1]);
 
         // extracting metadata
-        totalwords = *num++;
-        rootbit = *num++;
-        npsize = *num++;
-        mpsize = *num;
+        r.totalwords = *value++;
+        r.rootsbit = *value++;
+        r.npsize = *value++;
+        r.mpsize = *value;
 
+        *rfd = (refdata_info*)malloc(sizeof(refdata_info));
+        **rfd = r;
         fclose(rfdfp);
 
         res = 1;
@@ -42,21 +40,11 @@ int init_rfd()
     return res;
 }
 
-int is_word_present(char *word)
+int free_refdata_info(refdata_info *rfd)
 {
-    int res = 0, i = 0, meaning;
-    
-    bitpos = rootbit;
-    while((word[i+1] != '\0' && word[i+1] != '\n') && (bitpos != -1))
+    if(rfd)
     {
-        bitpos = get_nextlevel(word[i++]);
+        free(rfd->refdata);
+        free(rfd);
     }
-
-    if(bitpos != -1)
-    {
-        meaning = get_mmap();
-        res = ((meaning & 1<<(word[i]-'a')) >> (word[i])-'a');
-    }
-
-    return !(res == 0);
 }

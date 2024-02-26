@@ -4,23 +4,14 @@
 #include <time.h>
 #include <math.h>
 
+#include "simplest.h"
 #include "defs.h"
 #include "bitsarr.h"
-#include "rfd_utils.h"
 
 #define TYPESN 7
 #define tobyte(n) ((int)(ceil((float)n/(1<<3))))
 #define ptrsize(n) ((int)ceil((float)(log(n)/log(2))))
 #define WORDLEN 100
-
-typedef struct Node node;
-struct Node 
-{
-    int mlist;                  // bitmap of meanings available at a node
-    uchar mcount, ncount;               // total meanings available at a node 
-    struct Node *nextNode[NCHRS];  // next node pointers
-    long mps[NCHRS];
-}*root;
 
 int nncount[27];    // next node pointer count, value at index i gives node count with i next node pointers
 int nnmcount[27];   // meanings count, value at index i gives total meanings availables for all nodes with i next node pointers 
@@ -40,13 +31,6 @@ char *tosearch_file = "data/w3.txt";
 char *word_file = "data/words";
 char *len_meaning_file = "data/len_meaning";
 char *rfd_file = "data/rfd";
-
-node *create_node();
-void insert_node(char *word, long mp);
-int get_mmap();
-int get_nextlevel(char ch);
-long cmp_search(char *word);
-long normal_search(char *word);
 
 // create & initilize instance of struct Node
 node *create_node()
@@ -360,7 +344,7 @@ void ptr_calc()
     
     npsize = expptr;
     memsize = tobyte(memsize);
-    memsize += 2 + (4 * sizeof(int)) ;
+    memsize += 2 + (4 * sizeof(long));
 
     printf("totalnode %d, totalwords %d, zero mp(ONE_T, TWO_T) %d\n", totalnodes, totalwords, zmcount);
     printf("np %d, mp %d, memsize %d\n", npsize, mpsize, memsize);
@@ -484,9 +468,8 @@ int get_nextlevel(char ch)
 
 void store_rfd()
 {
-    int *num = (int*)&refdata[memsize - (4*sizeof(int)) -1];
+    long *num = (long*)&refdata[memsize - (4*sizeof(long)) -1];
     FILE *rfdfp;
-
 
     *num++ = totalwords;
     *num++ = rootbit;

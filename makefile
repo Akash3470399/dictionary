@@ -10,6 +10,9 @@ dict_a : src/dict_agent.c obj/sqlite3.o obj/err_handler.o obj/cmptrie.o obj/bits
 user_a : src/user_agent.c obj/sqlite3.o obj/err_handler.o
 	$(cc) $^ -o user_a $(cflags)
 
+cmptrie : main.c src/cmptrie.c obj/bitsarr.o
+	$(cc) $^ -o cmptrie $(cflags)
+
 simplest : obj/simplest.o obj/bitsarr.o 
 	$(cc) $^ -o simplest $(cflags)
 
