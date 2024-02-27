@@ -7,7 +7,7 @@
 #include "simplest.h"
 #include "defs.h"
 #include "bitsarr.h"
-
+#include "./debug.c"
 #define TYPESN 7
 #define tobyte(n) ((int)(ceil((float)n/(1<<3))))
 #define ptrsize(n) ((int)ceil((float)(log(n)/log(2))))
@@ -117,29 +117,6 @@ int get_meaning(char *word, char *meaning)
     return (mp != 0);
 }
 
-/*
-int cmp_search(char *word)
-{
-    uchar ch;
-    int res = 0, i = 0, meaning;
-    
-    bitpos = rootbit;
-    while((word[i+1] != '\0' && word[i+1] != '\n') && (bitpos != -1))
-        bitpos = get_nextlevel(word[i++]);
-
-    if(bitpos != -1)
-    {
-        ch = word[i] - 'a';
-        meaning = get_mmap();
-        
-        res = ((meaning & 1<<ch) >> ch);
-
-    }
-
-    return !(res == 0);
-}
-*/
-
 long cmp_search(char *word)
 {
     uchar ch;
@@ -148,20 +125,22 @@ long cmp_search(char *word)
     
     bitpos = rootbit;
     while((word[i+1] != '\0' && word[i+1] != '\n') && (bitpos != -1))
+    {
         bitpos = get_nextlevel(word[i++]);
+    }
 
     if(bitpos != -1)
     {
         ch = word[i] - 'a';
         meaning = get_mmap();
-        
         res = ((meaning & 1<<ch) >> ch);
-        
+        printf("mstart %d\n", bitpos);
+        printhex(refdata, bitpos/8, 32);
         for(int i = 0; (i <= ch) && res; i++)
             if(meaning & (1<<i))
                 getmp(res);
     }
-
+    
     return res;
 }
 
@@ -564,10 +543,13 @@ int main(int argc, char *argv[])
     // compress trie and store to refdata
     rootbit = compress(root);
     
-    search_words(tosearch_file);        
+    bitpos = rootbit;
+    cmp_search("hello\0");
+
+    //search_words(tosearch_file);        
     
     // store refdata to persitent storage
-    store_rfd();
+    //store_rfd();
     free_trie(root);
     printf("root bit pos %d\n",rootbit);
     fclose(wordsfp);
