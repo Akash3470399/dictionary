@@ -14,7 +14,7 @@ cmptrie : src/cmptrie.c obj/bitsarr.o main.c
 	$(cc) $^ -o cmptrie $(cflags)
 
 simplest : obj/simplest.o obj/bitsarr.o 
-	$(cc) $^ -o simplest $(cflags)
+	$(cc) $^ -o simplest $(cflags) -lm
 
 obj/%.o : src/%.c
 	@mkdir -p $(@D)

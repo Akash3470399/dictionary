@@ -12,7 +12,7 @@
 #   3. sinput file : input file for simplest program
 
 
-clang enc_mean.c -o enc_mean
+clang enc_mean.c -o enc_mean 
 if [ $# -eq 2 ] && [ -r $1 ] && [ -d $2 ] && [ -r ./enc_mean ]; then
     echo $1 > tmp
     python3 gen_meanings.py < tmp > $2/meanings

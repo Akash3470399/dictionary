@@ -31,11 +31,11 @@ int main(int argc, char *argv[])
     }
 
     fwrite(mapping, 1, 1, len_meanfp);
-    while(fgets(mapping+1, 255, meaning_fp))
+    while(fgets((char*)mapping+1, 255, meaning_fp))
     {
         // prints mp for word 
         printf("%ld\n", curbyte);
-        mapping[0] = len(mapping+1);
+        mapping[0] = len((char*)(mapping+1));
         curbyte += mapping[0] + 1;
         fwrite(mapping, mapping[0]+1, 1, len_meanfp);
     }

@@ -180,7 +180,8 @@ void collect_data(node *parent)
 // with appropiate pointers calculated & store it to refdata
 int compress(node *parent)
 {
-    int nodepos[NCHRS], selfpos;
+    int nodepos[NCHRS], selfpos, map = 0;
+    long  lastpos;
 
     for(int i = 0; i < NCHRS; i++)
         if(parent->nextNode[i] != NULL)
@@ -258,8 +259,6 @@ int compress(node *parent)
                     putmp(parent->mps[i]);
             break;
         default:
-            int map = 0;
-            long  lastpos;
             tp = OTR_T;
             
             puttype(tp);
@@ -384,6 +383,8 @@ int get_mmap()
                         bitpos += npsize;
             }
             getmap(res);
+        default:
+            break;
     }
     return res;
 }
@@ -440,6 +441,8 @@ int get_nextlevel(char ch)
                         bitpos += npsize;
                 getnp(res);
             }
+        default:
+            break;
     }
 
     return res;
@@ -549,7 +552,7 @@ int main(int argc, char *argv[])
     //search_words(tosearch_file);        
     
     // store refdata to persitent storage
-    //store_rfd();
+    store_rfd();
     free_trie(root);
     printf("root bit pos %d\n",rootbit);
     fclose(wordsfp);
