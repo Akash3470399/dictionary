@@ -56,6 +56,7 @@ int free_refdata_info(refdata_info *rfd)
         free(rfd->refdata);
         free(rfd);
     }
+    return 0;
 }
 
 
@@ -113,6 +114,7 @@ long npfor(refdata_info *rfd, long parentnp, char nextchar)
     char ch1, ch2;
     enum Type tp = 0;
     long curpos = parentnp, nextnp = -1;
+    int npmap = 0;
 
     nextchar -= 'a';
     bitscopy(rfd->refdata, curpos, &tp, 0, 3);
@@ -164,19 +166,20 @@ long npfor(refdata_info *rfd, long parentnp, char nextchar)
             break;
 
         case OTR_T:
-        int npmap = 0;
-        bitscopy(rfd->refdata, curpos, &npmap, 0, NCHRS);
-        curpos += NCHRS;
+            bitscopy(rfd->refdata, curpos, &npmap, 0, NCHRS);
+            curpos += NCHRS;
 
-        if(npmap & (1<<nextchar))
-        {
-            for(int i = 0; i < nextchar; i++)
-                if(npmap & (1<<i))
-                    curpos += rfd->npsize;
+            if(npmap & (1<<nextchar))
+            {
+                for(int i = 0; i < nextchar; i++)
+                    if(npmap & (1<<i))
+                        curpos += rfd->npsize;
 
-            nextnp *= 0;
-            bitscopy(rfd->refdata, curpos, &nextnp, 0, rfd->npsize);
-        }
+                nextnp *= 0;
+                bitscopy(rfd->refdata, curpos, &nextnp, 0, rfd->npsize);
+            }
+       default:
+            break;
     }
 
     return nextnp;
@@ -218,33 +221,10 @@ long get_mmap(refdata_info *rfd, long np, int *map)
                         np += rfd->npsize;
             }
             *map *= 0;
-            bitscopy(rfd->refdata, np, map, 0, NCHRS);        
+            bitscopy(rfd->refdata, np, map, 0, NCHRS);       
+        default:
+            break;
     }
     return (np + NCHRS);
 }
 
-
-long is_word_present(refdata_info *rfd, char *word)
-{
-
-    long np = rfd->rootsbit, mp = 0;
-    int i = 0,  map = 0;
-    while((word[i+1] != '\0') && (np != -1))
-        np = npfor(rfd, np, word[i++]);
-
-    if(np != -1)
-    {
-        char ch = word[i] - 'a'; 
-        np = get_mmap(rfd, np, &map);
-        mp = ((map & (1<<ch))>>ch);
-        for(int i = 0; (i < ch) && mp; i++)
-            if(map & (1<<i))       
-                np += rfd->mpsize;
-        if(mp)
-        {
-            mp *= 0;
-            bitscopy(rfd->refdata, np, &mp, 0, rfd->mpsize);
-        }
-    }
-    return mp;
-}

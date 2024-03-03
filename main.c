@@ -1,7 +1,7 @@
 #include <stdio.h>
 
-#include "intr/cmptrie.h"
-#include "intr/rfd_utils.h"
+#include "cmptrie.h"
+#include "rfd_utils.h"
 
 int search_words(char *filename, refdata_info *rfd)
 {

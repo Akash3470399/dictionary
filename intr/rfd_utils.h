@@ -8,7 +8,7 @@ typedef struct refdata_info refdata_info;
 struct refdata_info
 {
     long bitpos, rootsbit, totalwords;
-    int npsize, mpsize;
+    long npsize, mpsize;
     uchar *refdata;
 };
 

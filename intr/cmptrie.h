@@ -10,6 +10,6 @@ int free_refdata_info(refdata_info *rfd);
 
 int is_word_present(refdata_info *rfd, char *word);
 
-//int get_meaning(refdata_info *rfd, char *word, char *meaning);
+int get_meaning(refdata_info *rfd, char *word, char *meaning);
 
 #endif
