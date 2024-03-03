@@ -99,7 +99,11 @@ int check_word_query(int lastid)
     {
         reqid = sqlite3_column_int(req_stmt, 0);
         queried_word = sqlite3_column_text(req_stmt, 1);
+<<<<<<< HEAD
 
+=======
+        printf("queried wored %s\n", queried_word);
+>>>>>>> 0b07f57 (dict_agent, user_agent with prepare statement with one request id done.)
         is_present = get_meaning(rfd, (char*) queried_word, meaning);
 
         if(is_present > 0)
@@ -122,12 +126,17 @@ int check_word_query(int lastid)
 // argv[3] : refdata file name
 int main(int argc, char *argv[])
 {
-
+    int reqid = 0;
     if(db_setup(argv[1], argv[2]) == 0)
     {
         if(init_refdata_info("data/rfd", &rfd) == 0)
         {
             check_word_query(0);        
+            while(reqid != -1)
+            {
+                check_word_query(reqid);        
+                scanf("%d", &reqid);
+            }
         }
         else
         printf("exit\n"); 

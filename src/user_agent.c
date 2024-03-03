@@ -38,7 +38,11 @@ int db_setup();
 int db_cleanup();
 int query_word(char *word);
 resp check_resp(int id);
+<<<<<<< HEAD
 int id = 3;
+=======
+int id = 0;
+>>>>>>> 0b07f57 (dict_agent, user_agent with prepare statement with one request id done.)
 
 
 int strncp(char *dst, char *src)
@@ -154,21 +158,21 @@ int db_setup(char *reqtable, char *resptable)
 
 int main(int argc, char *argv[])
 {  
-    
+    char str[100] = "hello";
     if(db_setup(argv[1], argv[2]) > 0)
         return 1;
 
-    int i = 1;
-    resp r1;
-    while(check_resp(i++).reqid > 0);
+    int rid = 0;
 
-    if(r1.reqid > 0)
+    while(str[0] != '0')
     {
-     //  printf("id %d, str %s\n", r1.reqid, r1.resptext);
+        query_word(str);
+        check_resp(rid);
+
+        printf("q :");
+        fscanf(stdin, "%s\n", str);
+        printf("resp id : ");
+        scanf("%d", &rid);
     }
-    else
-        printf("failed\n");
-        
-    //query_word("thunder");
     db_cleanup();
 }
