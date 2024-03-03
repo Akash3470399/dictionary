@@ -39,10 +39,14 @@ int db_cleanup();
 int query_word(char *word);
 resp check_resp(int id);
 <<<<<<< HEAD
+<<<<<<< HEAD
 int id = 3;
 =======
 int id = 0;
 >>>>>>> 0b07f57 (dict_agent, user_agent with prepare statement with one request id done.)
+=======
+int id = 0;
+>>>>>>> e9ca3c9 (dict_agent, user_agent with prepare statement with one request id done.)
 
 
 int strncp(char *dst, char *src)
@@ -164,14 +168,10 @@ int main(int argc, char *argv[])
 
     int rid = 0;
 
-    while(str[0] != '0')
+    while(rid != -1)
     {
-        query_word(str);
+        //query_word(str);
         check_resp(rid);
-
-        printf("q :");
-        fscanf(stdin, "%s\n", str);
-        printf("resp id : ");
         scanf("%d", &rid);
     }
     db_cleanup();

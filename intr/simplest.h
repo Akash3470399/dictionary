@@ -24,6 +24,14 @@ struct Node
 // bitpos is properly set before using any of this macro
 // i.e bitpos is at bit where the attribute is stored
 
+#ifdef getchar
+#undef getchar
+#endif
+
+#ifdef putchar
+#undef putchar
+#endif
+
 
 #define gettype(tp) \
         { \

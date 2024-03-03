@@ -1,6 +1,7 @@
 #include <stdio.h>
-
+#include <unistd.h>
 #include "sqlite3.h"
+
 #include "cmptrie.h"
 #include "err_handler.h"
 
@@ -20,6 +21,7 @@ sqlite3_stmt *resp_stmt = NULL;;
 refdata_info *rfd;
 
 char dbquery_str[STRLEN];
+int cur_reqid = 0;
 
 int db_cleanup()
 {
@@ -99,18 +101,13 @@ int check_word_query(int lastid)
     {
         reqid = sqlite3_column_int(req_stmt, 0);
         queried_word = sqlite3_column_text(req_stmt, 1);
-<<<<<<< HEAD
-
-=======
-        printf("queried wored %s\n", queried_word);
->>>>>>> 0b07f57 (dict_agent, user_agent with prepare statement with one request id done.)
         is_present = get_meaning(rfd, (char*) queried_word, meaning);
 
         if(is_present > 0)
         {
             sqlite3_bind_int(resp_stmt, 1, reqid);
             sqlite3_bind_text(resp_stmt, 2, meaning, -1, SQLITE_TRANSIENT);
-
+	    cur_reqid = (reqid > cur_reqid)? reqid : cur_reqid;
             sqlite3_step(resp_stmt);
             sqlite3_reset(resp_stmt);    
         }
@@ -131,15 +128,14 @@ int main(int argc, char *argv[])
     {
         if(init_refdata_info("data/rfd", &rfd) == 0)
         {
-            check_word_query(0);        
-            while(reqid != -1)
+            while(1)
             {
-                check_word_query(reqid);        
-                scanf("%d", &reqid);
+                check_word_query(cur_reqid);        
+		sleep(2);
             }
         }
         else
-        printf("exit\n"); 
+        printf("unable to find refdata\n"); 
     }
         db_cleanup();
     return 0;
