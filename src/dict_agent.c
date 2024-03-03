@@ -5,17 +5,21 @@
 #include "err_handler.h"
 
 #define COMMDB_FILE "comm.db"
-#define REQDB_CREATE_Q "create table if not exists request (id integer primary key, uid integer, query_word text);\0"
-#define RESPDB_CREATE_Q "create table if not exists response (id integer primary key, resp_text text);\0"
+#define STRLEN 200
 
-#define REQDB_READ_Q "select * from request where id > ? ;\0"
-#define RESPDB_INSERT_Q "insert into response values ( ? , ? );\0"
+#define REQDB_CREATE_Q "create table if not exists %s (reqid integer primary key, query_word text);"
+#define RESPDB_CREATE_Q "create table if not exists %s (respid integer primary key, resp_text text);"
+
+#define REQDB_READ_Q "select * from %s where reqid > ? ;"
+#define RESPDB_INSERT_Q "insert into %s values ( ? , ? );"
 
 sqlite3 *commdb = NULL;
 
 sqlite3_stmt *req_stmt = NULL;
 sqlite3_stmt *resp_stmt = NULL;;
 refdata_info *rfd;
+
+char dbquery_str[STRLEN];
 
 int db_cleanup()
 {
@@ -27,17 +31,25 @@ int db_cleanup()
     return rc;
 }
 
-int db_setup()
+int db_setup(char *reqtable, char *resptable)
 {
     int rc;
     char *errstr;
+
+    if(!reqtable || !resptable)
+    {
+        dump_err("db : table names not given", "");
+        return 6;
+    }
+
     if((rc = sqlite3_open(COMMDB_FILE, &commdb)) != SQLITE_OK)
     {
         dump_err("db : request db connection failed", sqlite3_errstr(rc));
         return 1;
     }
 
-    sqlite3_exec(commdb, REQDB_CREATE_Q, NULL, NULL, &errstr);
+    sprintf(dbquery_str, REQDB_CREATE_Q, reqtable);
+    sqlite3_exec(commdb, dbquery_str, NULL, NULL, &errstr);
     if(errstr != NULL)
     {
         dump_err("db : request table creation failed", errstr);
@@ -46,7 +58,8 @@ int db_setup()
         return 2;
     }
 
-    sqlite3_exec(commdb, RESPDB_CREATE_Q, NULL, NULL, &errstr);
+    sprintf(dbquery_str, RESPDB_CREATE_Q, resptable);
+    sqlite3_exec(commdb, dbquery_str, NULL, NULL, &errstr);
     if(errstr != NULL)
     {
         dump_err("db : response table creation failed", errstr);
@@ -55,14 +68,16 @@ int db_setup()
         return 3;
     }
 
-    if((rc = sqlite3_prepare_v2(commdb, REQDB_READ_Q, -1, &req_stmt, NULL)) != SQLITE_OK)
+    sprintf(dbquery_str, REQDB_READ_Q, reqtable);
+    if((rc = sqlite3_prepare_v2(commdb, dbquery_str, -1, &req_stmt, NULL)) != SQLITE_OK)
     {
         dump_err("db : request prepare statment failed", sqlite3_errstr(rc));
         sqlite3_close(commdb);
         return 4;
     }
-
-    if((rc = sqlite3_prepare_v2(commdb, RESPDB_INSERT_Q, -1, &resp_stmt, NULL)) != SQLITE_OK)
+    
+    sprintf(dbquery_str, RESPDB_INSERT_Q, resptable);
+    if((rc = sqlite3_prepare_v2(commdb, dbquery_str, -1, &resp_stmt, NULL)) != SQLITE_OK)
     {
         dump_err("db : response prepare statement failed", sqlite3_errstr(rc));
         sqlite3_finalize(req_stmt);
@@ -75,20 +90,17 @@ int db_setup()
 int check_word_query(int lastid)
 {
     int rc, reqid;
-    const char *queried_word, *meaning = "hello there";
+    int is_present = 0;
+    char  meaning[1000];
+    const uchar *queried_word;
+    sqlite3_bind_int(req_stmt, 1, lastid);
 
-
-    if(sqlite3_bind_int(req_stmt, 1, lastid) != SQLITE_OK)
-        printf("bind fail\n");
-
-    rc = sqlite3_step(req_stmt);
-
-    if(rc == SQLITE_ROW)
+    while((rc = sqlite3_step(req_stmt))  == SQLITE_ROW)
     {
         reqid = sqlite3_column_int(req_stmt, 0);
-        queried_word = sqlite3_column_text(req_stmt, 2);
+        queried_word = sqlite3_column_text(req_stmt, 1);
 
-        int is_present = is_word_present((char *)queried_word);
+        is_present = get_meaning(rfd, (char*) queried_word, meaning);
 
         if(is_present > 0)
         {
@@ -99,19 +111,27 @@ int check_word_query(int lastid)
             sqlite3_reset(resp_stmt);    
         }
     }
-    else
-        printf("s %d\n", SQLITE_DONE == rc);
     sqlite3_reset(req_stmt);
+    return is_present;
 }
 
-int main()
+
+
+// argv[1] : request table name
+// argv[2] : response table name
+// argv[3] : refdata file name
+int main(int argc, char *argv[])
 {
-    db_setup();
-    if(init_refdata_info("data/rfd", &rfd) > 0)
+
+    if(db_setup(argv[1], argv[2]) == 0)
     {
-        check_word_query(3);        
+        if(init_refdata_info("data/rfd", &rfd) == 0)
+        {
+            check_word_query(0);        
+        }
+        else
+        printf("exit\n"); 
     }
-    else
-        printf("exit\n");
-    db_cleanup();
+        db_cleanup();
+    return 0;
 }

@@ -15,7 +15,7 @@ long get_mmap(refdata_info *rfd, long np, int *map);
 // initilize the refdata_info object with data read from rfd_file reference
 int init_refdata_info(char *rfd_file, refdata_info **rfd)
 {
-    int res = 0;
+    int res = 1;
     long memsize, *value;
     FILE *rfdfp;
     refdata_info r;
@@ -43,7 +43,7 @@ int init_refdata_info(char *rfd_file, refdata_info **rfd)
         **rfd = r;
         fclose(rfdfp);
 
-        res = 1;
+        res = 0;
     }
     return res;
 }

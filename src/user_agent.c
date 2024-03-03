@@ -2,19 +2,19 @@
 #include <stdlib.h>
 
 #include "sqlite3.h"
+#include "cmptrie.h"
 #include "err_handler.h"
 
 
-#define STRLIMT 200
-
+#define STRLEN 200
 
 #define COMMDB_FILE "comm.db"
 
-#define REQDB_CREATE_Q "create table if not exists request (id integer primary key, uid integer, query_word text);\0"
-#define RESPDB_CREATE_Q "create table if not exists response (id integer primary key, resp_text text);"
+#define REQDB_CREATE_Q "create table if not exists %s (reqid integer primary key, query_word text);"
+#define RESPDB_CREATE_Q "create table if not exists %s (respid integer primary key, resp_text text);"
 
-#define REQDB_INSERT_Q "insert into request values(?, ?, ?);\0"
-#define RESPDB_READ_Q "select * from response where id == ?;\0"
+#define REQDB_INSERT_Q "insert into %s values(?, ?);"
+#define RESPDB_READ_Q "select * from %s where respid == ?;"
 
 typedef struct resp resp; 
 typedef unsigned char uchar;
@@ -22,7 +22,7 @@ typedef unsigned char uchar;
 struct resp
 {
     int reqid;
-    char resptext[STRLIMT];
+    char resptext[STRLEN];
 };
 
 
@@ -31,49 +31,51 @@ sqlite3 *commdb = NULL;
 sqlite3_stmt *req_stmt = NULL;
 sqlite3_stmt *resp_stmt = NULL;;
 
+char dbquery_str[STRLEN];
+
+
 int db_setup();
 int db_cleanup();
-int query_word(int uid, char *word);
-resp *check_resp(int id);
-int id = 1;
+int query_word(char *word);
+resp check_resp(int id);
+int id = 3;
 
 
-int strncp(char *dst, const char *src)
+int strncp(char *dst, char *src)
 {
     int count = 0;
-    while(((*dst++ = *src++) != '\0') && count < STRLIMT)
+    while(((*dst++ = *src++) != '\0') && count < STRLEN)
         count += 1;
     return count; 
 }
 
 
-resp *check_resp(int id)
+resp check_resp(int reqid)
 {
-    resp *query_resp= NULL;
+    resp query_resp = {0, 0};
     int rc;
-    const char *resptext; 
-    sqlite3_bind_int(resp_stmt, 1, id);
+    const uchar *resptext; 
 
-    rc = sqlite3_step(resp_stmt);
+    sqlite3_bind_int(resp_stmt, 1, reqid);
 
-    if(rc == SQLITE_ROW)
+    if((rc = sqlite3_step(resp_stmt)) == SQLITE_ROW)
     {
-        query_resp = (resp*)malloc(sizeof(resp));
-        query_resp->reqid = sqlite3_column_int(resp_stmt, 0);
-        resptext= sqlite3_column_text(resp_stmt, 1); 
-        strncp(query_resp->resptext, resptext);        
+        query_resp.reqid = sqlite3_column_int(resp_stmt, 0);
+        resptext = sqlite3_column_text(resp_stmt, 1); 
+        strncp(query_resp.resptext, (char*)resptext);       
+
+        printf("got %s\n", resptext);
     }
-    else
-        dump_err("db : response read failed", sqlite3_errstr(rc));
     sqlite3_reset(resp_stmt);
     return query_resp;
 }
-int query_word(int uid, char *word)
+
+
+int query_word(char *word)
 {
     int rc;
-    sqlite3_bind_int(req_stmt, 1, id);
-    sqlite3_bind_int(req_stmt, 2, uid);
-    sqlite3_bind_text(req_stmt, 3, word, -1, SQLITE_TRANSIENT);
+    sqlite3_bind_int(req_stmt, 1, id++);
+    sqlite3_bind_text(req_stmt, 2, word, -1, SQLITE_TRANSIENT);
 
     if((rc = sqlite3_step(req_stmt)) != SQLITE_DONE)
     {
@@ -93,17 +95,25 @@ int db_cleanup()
 
     return rc;
 }
-int db_setup()
+int db_setup(char *reqtable, char *resptable)
 {
     int rc;
     char *errstr;
+
+    if(!reqtable || !resptable)
+    {
+        dump_err("db : tables names not given ", "");
+        return 6;
+    }
+
     if((rc = sqlite3_open(COMMDB_FILE, &commdb)) != SQLITE_OK)
     {
         dump_err("db : request db connection failed", sqlite3_errstr(rc));
         return 1;
     }
 
-    sqlite3_exec(commdb, REQDB_CREATE_Q, NULL, NULL, &errstr);
+    sprintf(dbquery_str, REQDB_CREATE_Q, reqtable);
+    sqlite3_exec(commdb, dbquery_str, NULL, NULL, &errstr);
     if(errstr != NULL)
     {
         dump_err("db : request table creation failed", errstr);
@@ -112,7 +122,8 @@ int db_setup()
         return 2;
     }
 
-    sqlite3_exec(commdb, RESPDB_CREATE_Q, NULL, NULL, &errstr);
+    sprintf(dbquery_str, RESPDB_CREATE_Q, resptable);
+    sqlite3_exec(commdb, dbquery_str, NULL, NULL, &errstr);
     if(errstr != NULL)
     {
         dump_err("db : response table creation failed", errstr);
@@ -121,14 +132,16 @@ int db_setup()
         return 3;
     }
 
-    if((rc = sqlite3_prepare_v2(commdb, REQDB_INSERT_Q, -1, &req_stmt, NULL)) != SQLITE_OK)
+    sprintf(dbquery_str, REQDB_INSERT_Q, reqtable);
+    if((rc = sqlite3_prepare_v2(commdb, dbquery_str, -1, &req_stmt, NULL)) != SQLITE_OK)
     {
         dump_err("db : request prepare statment failed", sqlite3_errstr(rc));
         sqlite3_close(commdb);
         return 4;
     }
 
-    if((rc = sqlite3_prepare_v2(commdb, RESPDB_READ_Q, -1, &resp_stmt, NULL)) != SQLITE_OK)
+    sprintf(dbquery_str, RESPDB_READ_Q, resptable);
+    if((rc = sqlite3_prepare_v2(commdb, dbquery_str, -1, &resp_stmt, NULL)) != SQLITE_OK)
     {
         dump_err("db : response prepare statement failed", sqlite3_errstr(rc));
         sqlite3_finalize(req_stmt);
@@ -139,21 +152,23 @@ int db_setup()
 }
 
 
-int main()
+int main(int argc, char *argv[])
 {  
     
-    if(db_setup() > 0)
+    if(db_setup(argv[1], argv[2]) > 0)
         return 1;
-    resp *r1 = check_resp(1);
 
-    if(r1)
+    int i = 1;
+    resp r1;
+    while(check_resp(i++).reqid > 0);
+
+    if(r1.reqid > 0)
     {
-       printf("id %d, str %s\n", r1->reqid, r1->resptext);
+     //  printf("id %d, str %s\n", r1.reqid, r1.resptext);
     }
     else
         printf("failed\n");
         
-    //query_word(124, "hello");
-    free(r1);
+    //query_word("thunder");
     db_cleanup();
 }
