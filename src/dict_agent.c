@@ -6,7 +6,7 @@
 
 #define COMMDB_FILE "comm.db"
 #define REQDB_CREATE_Q "create table if not exists request (id integer primary key, uid integer, query_word text);\0"
-#define RESPDB_CREATE_Q "create table if not exists response (id integer primary key, resp_text text);"
+#define RESPDB_CREATE_Q "create table if not exists response (id integer primary key, resp_text text);\0"
 
 #define REQDB_READ_Q "select * from request where id > ? ;\0"
 #define RESPDB_INSERT_Q "insert into response values ( ? , ? );\0"
@@ -15,7 +15,7 @@ sqlite3 *commdb = NULL;
 
 sqlite3_stmt *req_stmt = NULL;
 sqlite3_stmt *resp_stmt = NULL;;
-
+refdata_info *rfd;
 
 int db_cleanup()
 {
@@ -107,10 +107,9 @@ int check_word_query(int lastid)
 int main()
 {
     db_setup();
-    if(init_rfd() > 0)
+    if(init_refdata_info("data/rfd", &rfd) > 0)
     {
         check_word_query(3);        
-    
     }
     else
         printf("exit\n");
