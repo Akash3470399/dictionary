@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
             while(1)
             {
                 check_word_query(cur_reqid);        
-		sleep(2);
+	        	sleep(2);
             }
         }
         else
