@@ -1,0 +1,53 @@
+<html>
+	<body>
+		<h2>Dictionary</h2>
+
+			<label for="word-input"> Enter word </label><br>
+			<input type="text" id="word-input" >
+			<button id="submit-btn" > Search </button><br><br>
+			<label for="token-input"> Enter token </label><br>
+			<input type="text" id="token-input" >
+			<button id="meaning-btn"> Query </button>
+
+		<p id="resp-text">
+
+		</p>
+
+		<script>
+			submitbtn = document.getElementById("submit-btn");
+			submitbtn.addEventListener("click", makeWordQuery);
+			
+			resp_para = document.getElementById("resp-text");
+			function makeWordQuery(e) {
+				e.preventDefault();
+				
+				query_word = document.getElementById("word-input").value;
+				
+				url = window.location.origin + "/" + "cgi-bin/search?q=" + query_word;
+				
+
+				fetch(url)
+							.then((res) => res.json())
+							.then((data) => {
+								resp_para.innerText = data.resptext;
+							});
+			}
+
+			document.getElementById("meaning-btn").addEventListener("click", check_meaning);
+			function check_meaning(e)
+			{
+				e.preventDefault();
+				token = document.getElementById("token-input").value;
+			
+				url = window.location.origin + "/" + "cgi-bin/search?g=" + token;
+				fetch(url)
+						.then((res) => res.json())
+						.then((data) => {
+							resp_para.innerText = data.resptext;
+						});
+			}
+
+			alert("hello ther");
+		</script>
+	</body>
+</html>

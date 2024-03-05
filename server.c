@@ -22,7 +22,11 @@ int main()
 
     selfaddr.sin_family = AF_INET;
     selfaddr.sin_port = htons(port);
+<<<<<<< HEAD
     selfaddr.sin_addr.s_addr = htons(INADDR_ANY);
+=======
+    selfaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+>>>>>>> a9e77f8 (i)
 
     char buff[1000];
 

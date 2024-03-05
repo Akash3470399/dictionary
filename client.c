@@ -19,12 +19,20 @@ int main()
     memset(&serveraddr, 0,sizeof(serveraddr));
     serveraddr.sin_family = AF_INET;
     serveraddr.sin_port = htons(server_port);
+<<<<<<< HEAD
     serveraddr.sin_addr.s_addr = htons(INADDR_ANY);
+=======
+    serveraddr.sin_addr.s_addr = inet_addr("127.0.0.1");
+>>>>>>> a9e77f8 (i)
 
 
     char buff[100];
     char rbuff[100];
+<<<<<<< HEAD
     sprintf(buff, "e %d", 1);
+=======
+    sprintf(buff, "q hello");
+>>>>>>> a9e77f8 (i)
     if(connect(server_sockfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr)) == 0)
     {
         printf("connected\n");

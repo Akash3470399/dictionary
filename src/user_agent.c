@@ -84,7 +84,7 @@ int query_word(char *word)
     sqlite3_bind_text(req_stmt, 2, word, -1, SQLITE_TRANSIENT);
 
     if((rc = sqlite3_step(req_stmt)) == SQLITE_DONE)
-        reqid = cur_reqid;
+        reqid = cur_reqid++;
     else
         dump_err("db : word query failed", sqlite3_errstr(rc));
     
@@ -181,7 +181,7 @@ int main(int argc, char *argv[])
 
     selfaddr.sin_family = AF_INET;
     selfaddr.sin_port = htons(port);
-    selfaddr.sin_addr.s_addr = htons(INADDR_ANY);
+    selfaddr.sin_addr.s_addr = inet_addr("127.0.0.1");
 
     if(bind(self_sockfd, (struct sockaddr *)&selfaddr, sizeof(selfaddr)) < 0)
     {
@@ -221,8 +221,8 @@ int main(int argc, char *argv[])
                     else
                     {
                         memset(buffer, 0, sizeof(buffer));
-                        n = 1 + 4;
-                        sprintf(buffer, "f");
+                        n = 1 + 15 +4;
+                        sprintf(buffer, "f cant query word");
                     }
                 }
             
@@ -238,8 +238,8 @@ int main(int argc, char *argv[])
                     else
                     {
                         memset(buffer, 0, sizeof(buffer));
-                        sprintf(buffer, "f");
-                        n = 1 + 4;
+                        sprintf(buffer, "f unable to find meangin");
+                        n = 1 + 23 +4;
                     }
                 }
             
