@@ -22,5 +22,5 @@ obj/%.o : src/%.c
 
 .PHONY : clean
 clean:
-	rm -f dict_a user_a simplest logs
+	rm -f dict_a user_a simplest logs comm.db
 
