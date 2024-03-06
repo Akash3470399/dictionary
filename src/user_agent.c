@@ -208,47 +208,28 @@ int main(int argc, char *argv[])
                 buffer[n] = '\0';
                 printf("connected\nquery %s\n", buffer);
                 
-                n = 0;
                 if(buffer[0] == 'q')
                 {
-                    if((reqid = query_word(&buffer[2])) > 0)
-                    {
-
-                        memset(buffer, 0, sizeof(buffer));
-                        sprintf(buffer, "s %d", reqid);
-                        n = 1 + 4 + 4;
-                    }
+                    if((strlen(&buffer[2]) > 0) && ((reqid = query_word(&buffer[2])) > 0))
+                        sprintf(buffer, "s-%d", reqid);
                     else
-                    {
-                        memset(buffer, 0, sizeof(buffer));
-                        n = 1 + 15 +4;
-                        sprintf(buffer, "f cant query word");
-                    }
+                        sprintf(buffer, "f-Can't query word at this moment");
                 }
-            
                 else if(buffer[0] == 'g')
                 {
                     sscanf(&buffer[2], "%d", &reqid);
-                    if((query_resp = check(reqid)).reqid > 0)
-                    {
-                        memset(buffer, 0, sizeof(buffer));
-                        sprintf(buffer, "s %s", query_resp.resptext);
-                        n = 1 + strlen(query_resp.resptext) + 4;
-                    }
+                    if((reqid > 0) && ((query_resp = check(reqid)).reqid > 0))
+                        sprintf(buffer, "s-%s", query_resp.resptext);
                     else
-                    {
-                        memset(buffer, 0, sizeof(buffer));
-                        sprintf(buffer, "f unable to find meangin");
-                        n = 1 + 23 +4;
-                    }
+                        sprintf(buffer, "f-Unable to find token %d.", reqid);
                 }
+				else
+						buffer[0] = 0;
             
-                if(n > 0)
-                {
-                    buffer[n] = '\0';
-                    write(client_sockfd, buffer, n);
-                }
-                close(client_sockfd);
+                if(buffer[0] != 0)
+                    write(client_sockfd, buffer, strlen(buffer));
+                
+				close(client_sockfd);
             }
 
         }

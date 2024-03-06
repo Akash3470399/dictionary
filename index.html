@@ -9,9 +9,16 @@
 			<input type="text" id="token-input" >
 			<button id="meaning-btn"> Query </button>
 
-		<p id="resp-text">
+		<p id="resp-text"></p>
 
-		</p>
+		<table>
+			<tbody>
+				<tr>
+					<td>  word  </td>
+					<td>  token </td>
+				</tr>
+			</tbody>
+		</table>
 
 		<script>
 			submitbtn = document.getElementById("submit-btn");
@@ -20,17 +27,30 @@
 			resp_para = document.getElementById("resp-text");
 			function makeWordQuery(e) {
 				e.preventDefault();
-				
 				query_word = document.getElementById("word-input").value;
-				
-				url = window.location.origin + "/" + "cgi-bin/search?q=" + query_word;
-				
-
+				url = window.location.origin + "/" + "cgi-bin/search?q-" + query_word;
 				fetch(url)
-							.then((res) => res.json())
-							.then((data) => {
-								resp_para.innerText = data.resptext;
-							});
+					.then(res => {
+						if(res.ok)
+						{
+							res.json()
+								.then( data => { 
+									resp_para.innerText = "token for " + query_word + " :" + data.resptext;
+									
+									tableBody = document.querySelector("tbody");
+									table = document.querySelector("table");
+									newRow = tableBody.insertRow();
+									newCell = newRow.insertCell();
+									newCell.textContent = query_word;
+									newCell = newRow.insertCell();
+									newCell.textContent = data.resptext;	
+
+								});
+						}
+						else
+								resp_para.innerText = "invalid request";
+					});
+				document.getElementById("word-input").value = "";
 			}
 
 			document.getElementById("meaning-btn").addEventListener("click", check_meaning);
@@ -39,15 +59,16 @@
 				e.preventDefault();
 				token = document.getElementById("token-input").value;
 			
-				url = window.location.origin + "/" + "cgi-bin/search?g=" + token;
+				url = window.location.origin + "/" + "cgi-bin/search?g-" + token;
 				fetch(url)
-						.then((res) => res.json())
-						.then((data) => {
-							resp_para.innerText = data.resptext;
-						});
+					.then(res => {
+							if(res.ok)
+								res.json().then( data => resp_para.innerText = ("response :" + data.resptext));
+							else
+								resp_para.innerText = "invalid request."
+					});	
+				document.getElementById("token-input").value = "";
 			}
-
-			alert("hello ther");
 		</script>
 	</body>
 </html>

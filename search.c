@@ -7,6 +7,25 @@
 #include <netinet/in.h>
 
 
+int is_word(char *str)
+{
+	char ch;	
+	int res = (*str)? 1 : 0;	
+	while((*str != '\0') && (res == 1))
+	{
+		ch = *str;
+		if((ch >= 'a' && ch <= 'z') || (ch >= 'A' && ch <= 'Z'))
+		{
+			*str |= 0x60; 	
+			str += 1;
+		}
+		else
+			res = 0;
+	}	
+	return res;
+}
+
+
 int main() 
 {
 	struct sockaddr_in serveraddr;
@@ -26,13 +45,11 @@ int main()
 
 
     char *req = getenv("QUERY_STRING");
-	sscanf(req, "%c=%s", &op, query);	
+	sscanf(req, "%c-%s", &op, query);	
 	char buffer[1000];
 
-	if(op == 'q' && strlen(query) > 0)
-		req[1] = ' ';				
-	else if(op == 'g' && (atoi(query) > 0))
-		req[1] = ' ';
+	if(op == 'q' && is_word(query)) {}
+	else if(op == 'g' && (atoi(query) > 0)) {}
 	else
 	{
 		puts("Status: 400 Bad Request\n\r");
@@ -42,13 +59,13 @@ int main()
 
 	if(connect(server_sockfd, (struct sockaddr*)&serveraddr, sizeof(serveraddr)) == 0)
 	{
-
         write(server_sockfd, req, strlen(req));
-        int n = read(server_sockfd, buffer, 100);
-	
-		puts("Status: 200 OK\n\r");
-		printf("{\"resptext\": \"%s\"}\r", buffer);
-		puts("\r");
+        if(read(server_sockfd, buffer, 100) > 0)
+		{	
+			puts("Status: 200 OK\n\r");
+			printf("{\"resptext\": \"%s\"}\r", &buffer[2]);
+			puts("\r");
+		}
 	}
 
 	close(server_sockfd);
